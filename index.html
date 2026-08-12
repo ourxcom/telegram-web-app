@@ -341,7 +341,7 @@ function renderField(f) {
   return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${f.def||""}"></div>`;
 }
 
-async function submitCurrentForm(defs) {
+async function submitCurrentForm(defs, confirmDuplicate) {
   const msgEl = document.getElementById("formMsg");
   msgEl.innerHTML = "";
   const fields = {};
@@ -360,7 +360,8 @@ async function submitCurrentForm(defs) {
       action: "submit",
       telegramId,
       jarayon: currentJarayon,
-      fields
+      fields,
+      confirmDuplicate: !!confirmDuplicate
     });
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
@@ -372,6 +373,10 @@ async function submitCurrentForm(defs) {
           if (el) el.value = "";
         }
       });
+    } else if (res.duplicate) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
+      askDuplicateConfirm(res.error, () => submitCurrentForm(defs, true));
+      msgEl.innerHTML = "";
     } else {
       msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
     }
@@ -380,6 +385,14 @@ async function submitCurrentForm(defs) {
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = "Saqlash";
+  }
+}
+
+function askDuplicateConfirm(message, onConfirm) {
+  if (tg && tg.showConfirm) {
+    tg.showConfirm(message, (confirmed) => { if (confirmed) onConfirm(); });
+  } else {
+    if (window.confirm(message)) onConfirm();
   }
 }
 
