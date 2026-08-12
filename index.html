@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ishlab chiqarish formasi</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --tg-bg: var(--tg-theme-bg-color, #ffffff);
+    --tg-text: var(--tg-theme-text-color, #1a1a1a);
+    --tg-hint: var(--tg-theme-hint-color, #8a8a8e);
+    --tg-link: var(--tg-theme-link-color, #2481cc);
+    --tg-btn: var(--tg-theme-button-color, #2481cc);
+    --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --tg-secbg: var(--tg-theme-secondary-bg-color, #f0f0f3);
+    --accent-danger: #e0483e;
+    --accent-ok: #2ecc71;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--tg-bg); color:var(--tg-text);
+    padding-bottom:90px;
+  }
+  header{
+    padding:16px; position:sticky; top:0; background:var(--tg-bg); z-index:10;
+    border-bottom:1px solid var(--tg-secbg);
+    display:flex; align-items:center; gap:10px;
+  }
+  header h1{font-size:17px; margin:0; flex:1;}
+  .back-btn{
+    background:none; border:none; color:var(--tg-link); font-size:16px; cursor:pointer; padding:4px 0;
+  }
+  main{padding:16px;}
+  .card{
+    background:var(--tg-secbg); border-radius:14px; padding:14px 16px;
+    margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+    cursor:pointer; transition:transform .1s;
+  }
+  .card:active{transform:scale(0.98);}
+  .card .title{font-size:15px; font-weight:600;}
+  .card .chevron{color:var(--tg-hint); font-size:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:13px; color:var(--tg-hint); margin-bottom:6px;}
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--tg-secbg);
+    background:var(--tg-secbg); color:var(--tg-text); font-size:15px; font-family:inherit;
+  }
+  .field textarea{resize:vertical; min-height:50px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .section-title{
+    font-size:13px; font-weight:700; text-transform:uppercase; color:var(--tg-hint);
+    margin:20px 0 8px; letter-spacing:.4px;
+  }
+  .footer-bar{
+    position:fixed; bottom:0; left:0; right:0; padding:12px 16px;
+    background:var(--tg-bg); border-top:1px solid var(--tg-secbg);
+  }
+  .btn-primary{
+    width:100%; padding:14px; border:none; border-radius:12px;
+    background:var(--tg-btn); color:var(--tg-btn-text); font-size:16px; font-weight:600;
+    cursor:pointer;
+  }
+  .btn-primary:disabled{opacity:.5;}
+  .msg{
+    padding:12px 14px; border-radius:10px; font-size:14px; margin-bottom:14px;
+  }
+  .msg-error{background:rgba(224,72,62,.12); color:var(--accent-danger);}
+  .msg-ok{background:rgba(46,204,113,.12); color:#1a9c53;}
+  .hidden{display:none !important;}
+  .center-msg{text-align:center; padding:60px 20px; color:var(--tg-hint); font-size:14px;}
+  .op-info{font-size:13px; color:var(--tg-hint); margin-bottom:16px;}
+  .reg-form input{margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn hidden" id="backBtn">‹ Orqaga</button>
+  <h1 id="headerTitle">Ishlab chiqarish</h1>
+</header>
+
+<main id="app">
+  <div class="center-msg" id="loadingMsg">Yuklanmoqda...</div>
+</main>
+
+<div class="footer-bar hidden" id="footerBar">
+  <button class="btn-primary" id="submitBtn">Saqlash</button>
+</div>
+
+<script>
+// ====== SOZLAMALAR ======
+const API_URL = "https://script.google.com/macros/s/AKfycbyLzPlbcSEFqgG_RAm8GdGnQivJ_YAjJPW1OW3IwSoFxe8RniWoiyAuKJC3tmh91d_e/exec"; // masalan: https://script.google.com/macros/s/AKfycb.../exec
+
+// ====== TELEGRAM SDK ======
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+if (tg) { tg.ready(); tg.expand(); }
+const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
+const telegramId = tgUser ? tgUser.id : (new URLSearchParams(location.search).get("test_id") || "TEST_USER");
+const telegramUsername = tgUser ? (tgUser.username || "") : "";
+
+// ====== HOLAT ======
+let bootstrap = null; // {operator, mahsulotlar, tuxtalishSabablari, jarayonlar}
+let currentJarayon = null;
+
+// Har bir jarayon uchun forma maydonlari tavsifi
+// type: text | date | select | number | time
+const FORM_DEFS = {
+  "Гранулятор": [
+    {k:"sana", label:"Дата", type:"text", placeholder:"kk.oo.yy (n)"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
+    {k:"fakt", label:"Факт", type:"number"},
+    {k:"brakLitnik", label:"Брак литник", type:"number"},
+    {k:"brakKukun", label:"Брак кукун", type:"number"},
+    {k:"tDan", label:"Т ..Дан", type:"time"},
+    {k:"tGacha", label:"Т ..Гача", type:"time"},
+    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ],
+  "Мотан": [
+    {k:"sana", label:"Дата", type:"text"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
+    {k:"fakt", label:"Факт", type:"number"},
+    {k:"tDan", label:"Т ..Дан", type:"time"},
+    {k:"tGacha", label:"Т ..Гача", type:"time"},
+    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ],
+  "Приготовление раствор": [
+    {k:"sana", label:"Дата", type:"text"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"fakt", label:"Факт", type:"number"},
+    {k:"seriyaBoshlanishi", label:"Серия бошланиши", type:"time"},
+    {k:"seriyaTugashi", label:"Серия тугаши", type:"time"},
+    {k:"brak", label:"Брак", type:"number"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ],
+  "Дозатор": [
+    {k:"sana", label:"Дата", type:"text"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
+    {k:"edIzm", label:"Ед. изм", type:"select", options:["А","П 10","П 50"]},
+    {k:"faktDoz", label:"Факт Доз", type:"number"},
+    {k:"brakOkk", label:"Брак окк.", type:"number"},
+    {k:"brakAmp", label:"Брак амп.", type:"number"},
+    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
+    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
+    {k:"tDan", label:"Т ..дан", type:"time"},
+    {k:"tGacha", label:"Т ..гача", type:"time"},
+    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ],
+  "Стерилизация": [
+    {k:"sana", label:"Дата", type:"text"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
+    {k:"fakt", label:"Факт", type:"number"},
+    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
+    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
+    {k:"tDan", label:"Т ..дан", type:"time"},
+    {k:"tGacha", label:"Т ..гача", type:"time"},
+    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ],
+  "Упаковка": [
+    {k:"sana", label:"Дата", type:"text"},
+    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
+    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
+    {k:"seriya", label:"Серия", type:"text"},
+    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
+    {k:"edIzm", label:"Ед. изм", type:"select", options:["А","П 10","П 50"]},
+    {k:"qadoqTuri", label:"Қадоқ тури", type:"select", options:["ГП","In bulk","Доупак"]},
+    {k:"fakt", label:"Факт", type:"number"},
+    {k:"gofra", label:"Гофра (Склад карантин)", type:"number"},
+    {k:"brakAmp", label:"Брак амп.", type:"number"},
+    {k:"brakMex", label:"Брак мех.", type:"number"},
+    {k:"brakDoza", label:"Брак доза.", type:"number"},
+    {k:"brakUtechka", label:"Брак утечка.", type:"number"},
+    {k:"brakInst", label:"Брак инст", type:"number"},
+    {k:"brakGof", label:"Брак гоф", type:"number"},
+    {k:"brakGrEt", label:"Брак гр.эт", type:"number"},
+    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
+    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
+    {k:"tDan", label:"Т ..дан", type:"time"},
+    {k:"tGacha", label:"Т ..гача", type:"time"},
+    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
+    {k:"primechanie", label:"Примечание", type:"textarea"}
+  ]
+};
+
+const app = document.getElementById("app");
+const headerTitle = document.getElementById("headerTitle");
+const backBtn = document.getElementById("backBtn");
+const footerBar = document.getElementById("footerBar");
+const submitBtn = document.getElementById("submitBtn");
+
+backBtn.onclick = () => renderMenu();
+
+function todayStr() {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${dd}.${mm}.${yy} (1)`;
+}
+
+async function apiGet(params) {
+  const url = API_URL + "?" + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  return res.json();
+}
+async function apiPost(payload) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, // preflightsiz yuborish uchun
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+async function init() {
+  if (!API_URL || API_URL.indexOf("PASTE_YOUR") === 0) {
+    app.innerHTML = `<div class="msg msg-error">API_URL sozlanmagan. index.html faylida API_URL o'zgaruvchisiga Apps Script Web App manzilini kiriting.</div>`;
+    return;
+  }
+  const data = await apiGet({ action: "bootstrap", telegramId });
+  if (!data.ok) {
+    app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`;
+    return;
+  }
+  bootstrap = data;
+  if (!bootstrap.operator) {
+    renderRegister();
+  } else {
+    renderMenu();
+  }
+}
+
+function renderRegister() {
+  headerTitle.textContent = "Ro'yxatdan o'tish";
+  backBtn.classList.add("hidden");
+  footerBar.classList.add("hidden");
+  app.innerHTML = `
+    <div class="msg msg-error">Siz hali ro'yxatdan o'tmagansiz. Таб.номерингizni kiriting — u Operatorlar ro'yxatida oldindan mavjud bo'lishi kerak.</div>
+    <div class="reg-form">
+      <div class="field">
+        <label>Таб.номер</label>
+        <input type="number" id="regTabNo" placeholder="masalan: 6721">
+      </div>
+    </div>
+    <button class="btn-primary" id="regBtn">Ro'yxatdan o'tish</button>
+  `;
+  document.getElementById("regBtn").onclick = async () => {
+    const tabNo = document.getElementById("regTabNo").value.trim();
+    if (!tabNo) return;
+    const res = await apiPost({ action: "register", tabNo, telegramId, telegramUsername });
+    if (res.ok) {
+      init();
+    } else {
+      alert(res.error || "Xatolik");
+    }
+  };
+}
+
+function renderMenu() {
+  currentJarayon = null;
+  headerTitle.textContent = "Jarayonni tanlang";
+  backBtn.classList.add("hidden");
+  footerBar.classList.add("hidden");
+  const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
+  app.innerHTML = `
+    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+    <div id="menuList"></div>
+  `;
+  const list = document.getElementById("menuList");
+  jarayonlar.forEach(j => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `<span class="title">${j}</span><span class="chevron">›</span>`;
+    div.onclick = () => renderForm(j);
+    list.appendChild(div);
+  });
+}
+
+function renderForm(jarayon) {
+  currentJarayon = jarayon;
+  headerTitle.textContent = jarayon;
+  backBtn.classList.remove("hidden");
+  footerBar.classList.remove("hidden");
+  const defs = FORM_DEFS[jarayon];
+  let html = `<div id="formMsg"></div>`;
+  defs.forEach(f => {
+    html += renderField(f);
+  });
+  app.innerHTML = html;
+
+  // Sana maydonini avtomatik to'ldirish
+  const sanaEl = document.getElementById("f_sana");
+  if (sanaEl && !sanaEl.value) sanaEl.value = todayStr();
+
+  submitBtn.onclick = () => submitCurrentForm(defs);
+}
+
+function renderField(f) {
+  const id = "f_" + f.k;
+  if (f.type === "select") {
+    const opts = f.options.map(o => `<option value="${o}">${o}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
+  }
+  if (f.type === "mahsulot") {
+    const opts = bootstrap.mahsulotlar.map(o => `<option value="${o}">${o}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">— tanlang —</option>${opts}</select></div>`;
+  }
+  if (f.type === "tuxtalish") {
+    const opts = bootstrap.tuxtalishSabablari.map(o => `<option value="${o.nomi}">${o.nomi}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
+  }
+  if (f.type === "textarea") {
+    return `<div class="field"><label>${f.label}</label><textarea id="${id}"></textarea></div>`;
+  }
+  if (f.type === "time") {
+    return `<div class="field"><label>${f.label}</label><input type="time" id="${id}"></div>`;
+  }
+  if (f.type === "number") {
+    return `<div class="field"><label>${f.label}</label><input type="number" inputmode="decimal" id="${id}"></div>`;
+  }
+  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${f.def||""}"></div>`;
+}
+
+async function submitCurrentForm(defs) {
+  const msgEl = document.getElementById("formMsg");
+  msgEl.innerHTML = "";
+  const fields = {};
+  for (const f of defs) {
+    const el = document.getElementById("f_" + f.k);
+    fields[f.k] = el.value;
+  }
+  if (!fields.sana || !fields.smena) {
+    msgEl.innerHTML = `<div class="msg msg-error">Дата va Смена to'ldirilishi shart.</div>`;
+    return;
+  }
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Saqlanmoqda...";
+  try {
+    const res = await apiPost({
+      action: "submit",
+      telegramId,
+      jarayon: currentJarayon,
+      fields
+    });
+    if (res.ok) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
+      // Formani tozalash, lekin Дата/Смена qoladi
+      defs.forEach(f => {
+        if (f.k !== "sana" && f.k !== "smena") {
+          const el = document.getElementById("f_" + f.k);
+          if (el) el.value = "";
+        }
+      });
+    } else {
+      msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
+    }
+  } catch (err) {
+    msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Saqlash";
+  }
+}
+
+init();
+</script>
+</body>
+</html>
