@@ -92,7 +92,7 @@
 
 <script>
 // ====== SOZLAMALAR ======
-const API_URL = "https://script.google.com/macros/s/AKfycbyLzPlbcSEFqgG_RAm8GdGnQivJ_YAjJPW1OW3IwSoFxe8RniWoiyAuKJC3tmh91d_e/exec"; // masalan: https://script.google.com/macros/s/AKfycb.../exec
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"; // masalan: https://script.google.com/macros/s/AKfycb.../exec
 
 // ====== TELEGRAM SDK ======
 const tg = window.Telegram ? window.Telegram.WebApp : null;
@@ -104,13 +104,23 @@ const telegramUsername = tgUser ? (tgUser.username || "") : "";
 // ====== HOLAT ======
 let bootstrap = null; // {operator, mahsulotlar, tuxtalishSabablari, jarayonlar}
 let currentJarayon = null;
+let shiftState = null; // {sana, smena}
+let shiftEntries = []; // joriy smena bo'yicha hali tasdiqlanmagan yozuvlar
+
+const SHIFT_KEY = "wms_shift_v1";
+function loadShift() {
+  try {
+    const raw = localStorage.getItem(SHIFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function saveShift(s) { localStorage.setItem(SHIFT_KEY, JSON.stringify(s)); }
+function clearShift() { localStorage.removeItem(SHIFT_KEY); }
 
 // Har bir jarayon uchun forma maydonlari tavsifi
 // type: text | date | select | number | time
 const FORM_DEFS = {
   "Гранулятор": [
-    {k:"sana", label:"Дата", type:"text", placeholder:"kk.oo.yy (n)"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
@@ -123,8 +133,6 @@ const FORM_DEFS = {
     {k:"primechanie", label:"Примечание", type:"textarea"}
   ],
   "Мотан": [
-    {k:"sana", label:"Дата", type:"text"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
@@ -135,8 +143,6 @@ const FORM_DEFS = {
     {k:"primechanie", label:"Примечание", type:"textarea"}
   ],
   "Приготовление раствор": [
-    {k:"sana", label:"Дата", type:"text"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"fakt", label:"Факт", type:"number"},
@@ -146,8 +152,6 @@ const FORM_DEFS = {
     {k:"primechanie", label:"Примечание", type:"textarea"}
   ],
   "Дозатор": [
-    {k:"sana", label:"Дата", type:"text"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
@@ -163,8 +167,6 @@ const FORM_DEFS = {
     {k:"primechanie", label:"Примечание", type:"textarea"}
   ],
   "Стерилизация": [
-    {k:"sana", label:"Дата", type:"text"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
@@ -177,8 +179,6 @@ const FORM_DEFS = {
     {k:"primechanie", label:"Примечание", type:"textarea"}
   ],
   "Упаковка": [
-    {k:"sana", label:"Дата", type:"text"},
-    {k:"smena", label:"Смена", type:"select", options:["А","Б","С","Д"]},
     {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
     {k:"seriya", label:"Серия", type:"text"},
     {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
@@ -210,12 +210,17 @@ const submitBtn = document.getElementById("submitBtn");
 
 backBtn.onclick = () => renderMenu();
 
-function todayStr() {
+function todayISO() {
   const d = new Date();
-  const dd = String(d.getDate()).padStart(2,"0");
+  const yyyy = d.getFullYear();
   const mm = String(d.getMonth()+1).padStart(2,"0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${dd}.${mm}.${yy} (1)`;
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatSanaDisplay(iso) {
+  if (!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}.${m}.${y}`;
 }
 
 async function apiGet(params) {
@@ -245,6 +250,11 @@ async function init() {
   bootstrap = data;
   if (!bootstrap.operator) {
     renderRegister();
+    return;
+  }
+  shiftState = loadShift();
+  if (!shiftState) {
+    renderShiftStart();
   } else {
     renderMenu();
   }
@@ -276,24 +286,90 @@ function renderRegister() {
   };
 }
 
-function renderMenu() {
+function renderShiftStart() {
+  headerTitle.textContent = "Smenani boshlash";
+  backBtn.classList.add("hidden");
+  footerBar.classList.add("hidden");
+  app.innerHTML = `
+    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+    <div class="field">
+      <label>Sana</label>
+      <input type="date" id="shiftSana" value="${todayISO()}">
+    </div>
+    <div class="field">
+      <label>Смена</label>
+      <select id="shiftSmena">
+        <option value="">— tanlang —</option>
+        <option value="А">А</option>
+        <option value="Б">Б</option>
+        <option value="С">С</option>
+        <option value="Д">Д</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="startShiftBtn">Boshlash</button>
+  `;
+  document.getElementById("startShiftBtn").onclick = () => {
+    const sana = document.getElementById("shiftSana").value;
+    const smena = document.getElementById("shiftSmena").value;
+    if (!sana || !smena) {
+      alert("Sana va Смена tanlanishi shart.");
+      return;
+    }
+    shiftState = { sana, smena };
+    saveShift(shiftState);
+    renderMenu();
+  };
+}
+
+async function refreshShiftEntries() {
+  const res = await apiGet({ action: "shiftEntries", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+  shiftEntries = res.ok ? res.entries : [];
+}
+
+function countFor(jarayon) {
+  return shiftEntries.filter(e => e.jarayon === jarayon).length;
+}
+
+async function renderMenu() {
   currentJarayon = null;
   headerTitle.textContent = "Jarayonni tanlang";
   backBtn.classList.add("hidden");
   footerBar.classList.add("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+  await refreshShiftEntries();
+
   const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
+  const totalCount = shiftEntries.length;
   app.innerHTML = `
     <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+    <div class="op-info" style="margin-top:-10px;">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}
+      <a href="#" id="changeShiftLink" style="margin-left:8px;">(o'zgartirish)</a>
+    </div>
     <div id="menuList"></div>
+    <div class="section-title">Smenani yakunlash</div>
+    <div class="card" id="reviewCard">
+      <span class="title">Ma'lumotlarni ko'rib chiqish va tasdiqlash</span>
+      <span class="chevron">${totalCount} ta ›</span>
+    </div>
   `;
   const list = document.getElementById("menuList");
   jarayonlar.forEach(j => {
+    const c = countFor(j);
     const div = document.createElement("div");
     div.className = "card";
-    div.innerHTML = `<span class="title">${j}</span><span class="chevron">›</span>`;
+    div.innerHTML = `<span class="title">${j}</span><span class="chevron">${c ? c + " ta · " : ""}›</span>`;
     div.onclick = () => renderForm(j);
     list.appendChild(div);
   });
+  document.getElementById("reviewCard").onclick = () => renderReview();
+  document.getElementById("changeShiftLink").onclick = (e) => {
+    e.preventDefault();
+    if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi, faqat yangi yozuvlar uchun yangi sana/smena ishlatiladi. Davom etasizmi?")) {
+      clearShift();
+      shiftState = null;
+      renderShiftStart();
+    }
+  };
 }
 
 function renderForm(jarayon) {
@@ -301,18 +377,80 @@ function renderForm(jarayon) {
   headerTitle.textContent = jarayon;
   backBtn.classList.remove("hidden");
   footerBar.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
   const defs = FORM_DEFS[jarayon];
-  let html = `<div id="formMsg"></div>`;
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}</div><div id="formMsg"></div>`;
   defs.forEach(f => {
     html += renderField(f);
   });
   app.innerHTML = html;
 
-  // Sana maydonini avtomatik to'ldirish
-  const sanaEl = document.getElementById("f_sana");
-  if (sanaEl && !sanaEl.value) sanaEl.value = todayStr();
-
+  submitBtn.textContent = "Saqlash";
   submitBtn.onclick = () => submitCurrentForm(defs);
+}
+
+function renderReview() {
+  headerTitle.textContent = "Ko'rib chiqish va tasdiqlash";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
+  footerBar.classList.remove("hidden");
+
+  if (shiftEntries.length === 0) {
+    app.innerHTML = `<div class="center-msg">Hali hech qanday yozuv kiritilmagan.</div>`;
+    footerBar.classList.add("hidden");
+    return;
+  }
+
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} · Jami: ${shiftEntries.length} ta yozuv</div>`;
+  shiftEntries.forEach((entry, idx) => {
+    const defs = FORM_DEFS[entry.jarayon];
+    const parts = defs
+      .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
+      .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
+      .join(" · ");
+    html += `
+      <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="title">${entry.jarayon}</span>
+          <button data-idx="${idx}" class="delEntryBtn" style="background:none;border:none;color:var(--accent-danger);font-size:13px;cursor:pointer;">O'chirish</button>
+        </div>
+        <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div>
+      </div>
+    `;
+  });
+  app.innerHTML = html;
+
+  document.querySelectorAll(".delEntryBtn").forEach(btn => {
+    btn.onclick = async () => {
+      const idx = Number(btn.dataset.idx);
+      const entry = shiftEntries[idx];
+      if (!confirm(`${entry.jarayon} yozuvini o'chirishni tasdiqlaysizmi?`)) return;
+      const res = await apiPost({ action: "deleteEntry", telegramId, jarayon: entry.jarayon, yozuvId: entry.yozuvId });
+      if (res.ok) {
+        await refreshShiftEntries();
+        renderReview();
+      } else {
+        alert(res.error || "Xatolik");
+      }
+    };
+  });
+
+  submitBtn.textContent = "Smenani tasdiqlash (" + shiftEntries.length + " ta)";
+  submitBtn.onclick = async () => {
+    if (!confirm("Barcha yozuvlarni tasdiqlaysizmi? Tasdiqlangandan keyin ularni o'zgartirib/o'chirib bo'lmaydi.")) return;
+    submitBtn.disabled = true;
+    const res = await apiPost({ action: "confirmShift", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+    submitBtn.disabled = false;
+    if (res.ok) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      alert(res.count + " ta yozuv tasdiqlandi. Smena yakunlandi.");
+      clearShift();
+      shiftState = null;
+      renderShiftStart();
+    } else {
+      alert(res.error || "Xatolik");
+    }
+  };
 }
 
 function renderField(f) {
@@ -344,14 +482,10 @@ function renderField(f) {
 async function submitCurrentForm(defs, confirmDuplicate) {
   const msgEl = document.getElementById("formMsg");
   msgEl.innerHTML = "";
-  const fields = {};
+  const fields = { sana: shiftState.sana, smena: shiftState.smena };
   for (const f of defs) {
     const el = document.getElementById("f_" + f.k);
     fields[f.k] = el.value;
-  }
-  if (!fields.sana || !fields.smena) {
-    msgEl.innerHTML = `<div class="msg msg-error">Дата va Смена to'ldirilishi shart.</div>`;
-    return;
   }
   submitBtn.disabled = true;
   submitBtn.textContent = "Saqlanmoqda...";
@@ -366,12 +500,9 @@ async function submitCurrentForm(defs, confirmDuplicate) {
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
-      // Formani tozalash, lekin Дата/Смена qoladi
       defs.forEach(f => {
-        if (f.k !== "sana" && f.k !== "smena") {
-          const el = document.getElementById("f_" + f.k);
-          if (el) el.value = "";
-        }
+        const el = document.getElementById("f_" + f.k);
+        if (el) el.value = "";
       });
     } else if (res.duplicate) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
