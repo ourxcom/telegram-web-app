@@ -92,7 +92,7 @@
 
 <script>
 // ====== SOZLAMALAR ======
-const API_URL = "https://script.google.com/macros/s/AKfycbyLzPlbcSEFqgG_RAm8GdGnQivJ_YAjJPW1OW3IwSoFxe8RniWoiyAuKJC3tmh91d_e/exec"; // masalan: https://script.google.com/macros/s/AKfycb.../exec
+const API_URL = "https://script.google.com/macros/s/AKfycbyLzPlbcSEFqgG_RAm8GdGnQivJ_YAjJPW1OW3IwSoFxe8RniWoiyAuKJC3tmh91d_e/exec";
 
 // ====== TELEGRAM SDK ======
 const tg = window.Telegram ? window.Telegram.WebApp : null;
@@ -105,7 +105,7 @@ const telegramUsername = tgUser ? (tgUser.username || "") : "";
 let bootstrap = null; // {operator, mahsulotlar, tuxtalishSabablari, jarayonlar}
 let currentJarayon = null;
 let shiftState = null; // {sana, smena}
-let shiftEntries = []; // joriy smena bo'yicha hali tasdiqlanmagan yozuvlar
+let shiftEntries = null; // null = hali yuklanmagan; [] = yuklangan, bo'sh
 
 const SHIFT_KEY = "wms_shift_v1";
 function loadShift() {
@@ -242,7 +242,12 @@ async function init() {
     app.innerHTML = `<div class="msg msg-error">API_URL sozlanmagan. index.html faylida API_URL o'zgaruvchisiga Apps Script Web App manzilini kiriting.</div>`;
     return;
   }
-  const data = await apiGet({ action: "bootstrap", telegramId });
+  shiftState = loadShift();
+  // Smena allaqachon tanlangan bo'lsa, bitta so'rovda operator + statik ro'yxatlar +
+  // joriy smena yozuvlarini birga olamiz (2 ta alohida so'rov o'rniga 1 ta — tezroq).
+  const params = { action: "bootstrap", telegramId };
+  if (shiftState) { params.sana = shiftState.sana; params.smena = shiftState.smena; }
+  const data = await apiGet(params);
   if (!data.ok) {
     app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`;
     return;
@@ -252,10 +257,10 @@ async function init() {
     renderRegister();
     return;
   }
-  shiftState = loadShift();
   if (!shiftState) {
     renderShiftStart();
   } else {
+    shiftEntries = data.entries || [];
     renderMenu();
   }
 }
@@ -317,6 +322,7 @@ function renderShiftStart() {
     }
     shiftState = { sana, smena };
     saveShift(shiftState);
+    shiftEntries = []; // yangi smena — hali yozuv yo'q, server so'rovi shart emas
     renderMenu();
   };
 }
@@ -327,7 +333,7 @@ async function refreshShiftEntries() {
 }
 
 function countFor(jarayon) {
-  return shiftEntries.filter(e => e.jarayon === jarayon).length;
+  return (shiftEntries || []).filter(e => e.jarayon === jarayon).length;
 }
 
 async function renderMenu() {
@@ -335,8 +341,10 @@ async function renderMenu() {
   headerTitle.textContent = "Jarayonni tanlang";
   backBtn.classList.add("hidden");
   footerBar.classList.add("hidden");
-  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-  await refreshShiftEntries();
+  if (shiftEntries === null) {
+    app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+    await refreshShiftEntries();
+  }
 
   const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
   const totalCount = shiftEntries.length;
@@ -367,6 +375,7 @@ async function renderMenu() {
     if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi, faqat yangi yozuvlar uchun yangi sana/smena ishlatiladi. Davom etasizmi?")) {
       clearShift();
       shiftState = null;
+      shiftEntries = null;
       renderShiftStart();
     }
   };
@@ -427,7 +436,7 @@ function renderReview() {
       if (!confirm(`${entry.jarayon} yozuvini o'chirishni tasdiqlaysizmi?`)) return;
       const res = await apiPost({ action: "deleteEntry", telegramId, jarayon: entry.jarayon, yozuvId: entry.yozuvId });
       if (res.ok) {
-        await refreshShiftEntries();
+        shiftEntries = shiftEntries.filter(e => e.yozuvId !== entry.yozuvId); // serverga qayta murojaat qilmay, mahalliy yangilaymiz
         renderReview();
       } else {
         alert(res.error || "Xatolik");
@@ -446,6 +455,7 @@ function renderReview() {
       alert(res.count + " ta yozuv tasdiqlandi. Smena yakunlandi.");
       clearShift();
       shiftState = null;
+      shiftEntries = null;
       renderShiftStart();
     } else {
       alert(res.error || "Xatolik");
@@ -500,6 +510,7 @@ async function submitCurrentForm(defs, confirmDuplicate) {
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
+      shiftEntries = (shiftEntries || []).concat([{ jarayon: currentJarayon, yozuvId: res.rowId, fields: fields }]); // mahalliy hisoblagichni yangilaymiz — qayta so'rov shart emas
       defs.forEach(f => {
         const el = document.getElementById("f_" + f.k);
         if (el) el.value = "";
