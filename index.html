@@ -210,18 +210,14 @@ const submitBtn = document.getElementById("submitBtn");
 
 backBtn.onclick = () => renderMenu();
 
-function todayISO() {
+function todayParts() {
   const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
-  return `${yyyy}-${mm}-${dd}`;
+  return { dd: d.getDate(), mm: d.getMonth()+1, yyyy: d.getFullYear() };
 }
-function formatSanaDisplay(iso) {
-  if (!iso) return "";
-  const [y,m,d] = iso.split("-");
-  return `${d}.${m}.${y}`;
-}
+// Sana endi "dd.mm.yyyy" ko'rinishidagi oddiy MATN sifatida saqlanadi — hech qanday
+// Date obyekti yoki native <input type="date"> ishlatilmaydi, shuning uchun
+// timezone yoki WebView'ga xos konvertatsiya xatolari butunlay yo'q qilinadi.
+function formatSanaDisplay(sana) { return sana; } // allaqachon "dd.mm.yyyy" ko'rinishida
 
 async function apiGet(params) {
   const url = API_URL + "?" + new URLSearchParams(params).toString();
@@ -295,11 +291,22 @@ function renderShiftStart() {
   headerTitle.textContent = "Smenani boshlash";
   backBtn.classList.add("hidden");
   footerBar.classList.add("hidden");
+  const t = todayParts();
+  const kunOptions = Array.from({length:31}, (_,i)=>i+1)
+    .map(d => `<option value="${d}" ${d===t.dd?"selected":""}>${d}</option>`).join("");
+  const oyNomlari = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
+  const oyOptions = oyNomlari.map((n,i) => `<option value="${i+1}" ${(i+1)===t.mm?"selected":""}>${n}</option>`).join("");
+  const yilOptions = [t.yyyy-1, t.yyyy, t.yyyy+1].map(y => `<option value="${y}" ${y===t.yyyy?"selected":""}>${y}</option>`).join("");
+
   app.innerHTML = `
     <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
     <div class="field">
       <label>Sana</label>
-      <input type="date" id="shiftSana" value="${todayISO()}">
+      <div class="row2" style="grid-template-columns:1fr 1.4fr 1fr;">
+        <select id="shiftKun">${kunOptions}</select>
+        <select id="shiftOy">${oyOptions}</select>
+        <select id="shiftYil">${yilOptions}</select>
+      </div>
     </div>
     <div class="field">
       <label>Смена</label>
@@ -314,12 +321,15 @@ function renderShiftStart() {
     <button class="btn-primary" id="startShiftBtn">Boshlash</button>
   `;
   document.getElementById("startShiftBtn").onclick = () => {
-    const sana = document.getElementById("shiftSana").value;
+    const kun = document.getElementById("shiftKun").value.padStart(2,"0");
+    const oy = document.getElementById("shiftOy").value.padStart(2,"0");
+    const yil = document.getElementById("shiftYil").value;
     const smena = document.getElementById("shiftSmena").value;
-    if (!sana || !smena) {
-      alert("Sana va Смена tanlanishi shart.");
+    if (!smena) {
+      alert("Смена tanlanishi shart.");
       return;
     }
+    const sana = `${kun}.${oy}.${yil}`; // sof matn, hech qanday Date/timezone konvertatsiyasi yo'q
     shiftState = { sana, smena };
     saveShift(shiftState);
     shiftEntries = []; // yangi smena — hali yozuv yo'q, server so'rovi shart emas
