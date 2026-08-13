@@ -358,6 +358,9 @@ async function renderMenu() {
 
   const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
   const totalCount = shiftEntries.length;
+  const reopenedCount = (bootstrap.reopenedEdits || []).length;
+  const pendingCount = (bootstrap.pendingRequests || []).length;
+
   app.innerHTML = `
     <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
     <div class="op-info" style="margin-top:-10px;">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}
@@ -369,6 +372,23 @@ async function renderMenu() {
       <span class="title">Ma'lumotlarni ko'rib chiqish va tasdiqlash</span>
       <span class="chevron">${totalCount} ta ›</span>
     </div>
+    ${reopenedCount ? `
+    <div class="section-title">Tahrirlash</div>
+    <div class="card" id="reopenedCard">
+      <span class="title">🔓 Ochilgan tahrirlar</span>
+      <span class="chevron">${reopenedCount} ta ›</span>
+    </div>` : ""}
+    <div class="section-title">Tarix</div>
+    <div class="card" id="historyCard">
+      <span class="title">🕘 Tasdiqlangan yozuvlarni ko'rish / tahrirlash so'rash</span>
+      <span class="chevron">›</span>
+    </div>
+    ${bootstrap.isAdmin ? `
+    <div class="section-title">Admin</div>
+    <div class="card" id="adminCard">
+      <span class="title">🛡 Admin panel</span>
+      <span class="chevron">${pendingCount} ta so'rov ›</span>
+    </div>` : ""}
   `;
   const list = document.getElementById("menuList");
   jarayonlar.forEach(j => {
@@ -380,6 +400,9 @@ async function renderMenu() {
     list.appendChild(div);
   });
   document.getElementById("reviewCard").onclick = () => renderReview();
+  if (reopenedCount) document.getElementById("reopenedCard").onclick = () => renderReopenedList();
+  document.getElementById("historyCard").onclick = () => renderHistoryPicker();
+  if (bootstrap.isAdmin) document.getElementById("adminCard").onclick = () => renderAdminPanel();
   document.getElementById("changeShiftLink").onclick = (e) => {
     e.preventDefault();
     if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi, faqat yangi yozuvlar uchun yangi sana/smena ishlatiladi. Davom etasizmi?")) {
@@ -431,13 +454,24 @@ function renderReview() {
       <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
           <span class="title">${entry.jarayon}</span>
-          <button data-idx="${idx}" class="delEntryBtn" style="background:none;border:none;color:var(--accent-danger);font-size:13px;cursor:pointer;">O'chirish</button>
+          <span>
+            <button data-idx="${idx}" class="editEntryBtn" style="background:none;border:none;color:var(--tg-link);font-size:13px;cursor:pointer;margin-right:10px;">Tahrirlash</button>
+            <button data-idx="${idx}" class="delEntryBtn" style="background:none;border:none;color:var(--accent-danger);font-size:13px;cursor:pointer;">O'chirish</button>
+          </span>
         </div>
         <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div>
       </div>
     `;
   });
   app.innerHTML = html;
+
+  document.querySelectorAll(".editEntryBtn").forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.dataset.idx);
+      const entry = shiftEntries[idx];
+      renderEditForm(entry.jarayon, entry.yozuvId, entry.fields, () => renderReview());
+    };
+  });
 
   document.querySelectorAll(".delEntryBtn").forEach(btn => {
     btn.onclick = async () => {
@@ -473,30 +507,31 @@ function renderReview() {
   };
 }
 
-function renderField(f) {
+function renderField(f, def) {
   const id = "f_" + f.k;
+  const dv = def !== undefined && def !== null ? def : "";
   if (f.type === "select") {
-    const opts = f.options.map(o => `<option value="${o}">${o}</option>`).join("");
+    const opts = f.options.map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
     return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
   }
   if (f.type === "mahsulot") {
-    const opts = bootstrap.mahsulotlar.map(o => `<option value="${o}">${o}</option>`).join("");
+    const opts = bootstrap.mahsulotlar.map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
     return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">— tanlang —</option>${opts}</select></div>`;
   }
   if (f.type === "tuxtalish") {
-    const opts = bootstrap.tuxtalishSabablari.map(o => `<option value="${o.nomi}">${o.nomi}</option>`).join("");
+    const opts = bootstrap.tuxtalishSabablari.map(o => `<option value="${o.nomi}" ${String(o.nomi)===String(dv)?"selected":""}>${o.nomi}</option>`).join("");
     return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
   }
   if (f.type === "textarea") {
-    return `<div class="field"><label>${f.label}</label><textarea id="${id}"></textarea></div>`;
+    return `<div class="field"><label>${f.label}</label><textarea id="${id}">${dv}</textarea></div>`;
   }
   if (f.type === "time") {
-    return `<div class="field"><label>${f.label}</label><input type="time" id="${id}"></div>`;
+    return `<div class="field"><label>${f.label}</label><input type="time" id="${id}" value="${dv}"></div>`;
   }
   if (f.type === "number") {
-    return `<div class="field"><label>${f.label}</label><input type="number" inputmode="decimal" id="${id}"></div>`;
+    return `<div class="field"><label>${f.label}</label><input type="number" inputmode="decimal" id="${id}" value="${dv}"></div>`;
   }
-  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${f.def||""}"></div>`;
+  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${dv || f.def || ""}"></div>`;
 }
 
 async function submitCurrentForm(defs, confirmDuplicate) {
@@ -546,6 +581,253 @@ function askDuplicateConfirm(message, onConfirm) {
   } else {
     if (window.confirm(message)) onConfirm();
   }
+}
+
+/**
+ * Mavjud yozuvni tahrirlash formasi. Ikki holatda ishlatiladi:
+ *  - Hali tasdiqlanmagan yozuv (review ekranidan "Tahrirlash")
+ *  - Admin tomonidan qayta ochilgan (tasdiqlangan bo'lgan) yozuv ("Ochilgan tahrirlar")
+ * onBack — orqaga qaytilganda chaqiriladigan funksiya.
+ */
+function renderEditForm(jarayon, yozuvId, existingFields, onBack) {
+  currentJarayon = jarayon;
+  headerTitle.textContent = "Tahrirlash: " + jarayon;
+  backBtn.classList.remove("hidden");
+  footerBar.classList.remove("hidden");
+  backBtn.onclick = onBack;
+  const defs = FORM_DEFS[jarayon];
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(existingFields.sana)} · Смена ${existingFields.smena}</div><div id="formMsg"></div>`;
+  defs.forEach(f => { html += renderField(f, existingFields[f.k]); });
+  app.innerHTML = html;
+
+  submitBtn.textContent = "Saqlash";
+  submitBtn.onclick = async () => {
+    const msgEl = document.getElementById("formMsg");
+    msgEl.innerHTML = "";
+    const fields = { sana: existingFields.sana, smena: existingFields.smena };
+    defs.forEach(f => { fields[f.k] = document.getElementById("f_" + f.k).value; });
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saqlanmoqda...";
+    try {
+      const res = await apiPost({ action: "editEntry", telegramId, jarayon, yozuvId, fields });
+      if (res.ok) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        // Mahalliy ro'yxatlarni yangilaymiz
+        if (shiftEntries) {
+          const idx = shiftEntries.findIndex(e => e.yozuvId === yozuvId);
+          if (idx !== -1) shiftEntries[idx].fields = fields;
+        }
+        if (bootstrap.reopenedEdits) {
+          bootstrap.reopenedEdits = bootstrap.reopenedEdits.filter(e => e.yozuvId !== yozuvId);
+        }
+        alert("Yozuv saqlandi.");
+        onBack();
+      } else {
+        msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
+      }
+    } catch (err) {
+      msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Saqlash";
+    }
+  };
+}
+
+/** Admin tomonidan qayta ochilgan (tahrirlash kutayotgan) yozuvlar ro'yxati */
+async function renderReopenedList() {
+  headerTitle.textContent = "Ochilgan tahrirlar";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
+
+  const list = bootstrap.reopenedEdits || [];
+  if (list.length === 0) {
+    app.innerHTML = `<div class="center-msg">Hozircha ochilgan tahrirlar yo'q.</div>`;
+    return;
+  }
+  let html = "";
+  list.forEach((item, idx) => {
+    html += `
+      <div class="card" data-idx="${idx}">
+        <span class="title">${item.jarayon}</span>
+        <span class="chevron">›</span>
+      </div>
+      <div style="font-size:12px; color:var(--tg-hint); margin:-6px 0 10px 4px;">Sabab: ${item.sabab || "-"}</div>
+    `;
+  });
+  app.innerHTML = html;
+  document.querySelectorAll(".card[data-idx]").forEach(card => {
+    card.onclick = async () => {
+      const idx = Number(card.dataset.idx);
+      const item = list[idx];
+      app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+      const res = await apiGet({ action: "entry", telegramId, jarayon: item.jarayon, yozuvId: item.yozuvId });
+      if (!res.ok) { alert(res.error || "Yozuv topilmadi"); renderReopenedList(); return; }
+      renderEditForm(item.jarayon, item.yozuvId, res.fields, () => renderReopenedList());
+    };
+  });
+}
+
+/** Operator o'z jarayonini tanlab, tasdiqlangan yozuvlarini ko'rish uchun */
+function renderHistoryPicker() {
+  headerTitle.textContent = "Tarix";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
+
+  const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
+  let html = `
+    <div class="field">
+      <label>Sana bo'yicha filtr (ixtiyoriy, dd.mm.yyyy)</label>
+      <input type="text" id="histSana" placeholder="masalan: 13.08.2026">
+    </div>
+    <div class="section-title">Jarayonni tanlang</div>
+    <div id="histList"></div>
+  `;
+  app.innerHTML = html;
+  const list = document.getElementById("histList");
+  jarayonlar.forEach(j => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `<span class="title">${j}</span><span class="chevron">›</span>`;
+    div.onclick = () => renderHistoryList(j, document.getElementById("histSana").value.trim());
+    list.appendChild(div);
+  });
+}
+
+async function renderHistoryList(jarayon, sana) {
+  headerTitle.textContent = jarayon + " — tarix";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderHistoryPicker();
+  footerBar.classList.add("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+
+  const params = { action: "history", telegramId, jarayon };
+  if (sana) params.sana = sana;
+  const res = await apiGet(params);
+  const entries = res.ok ? res.entries : [];
+  if (entries.length === 0) {
+    app.innerHTML = `<div class="center-msg">Tasdiqlangan yozuv topilmadi.</div>`;
+    return;
+  }
+  const defs = FORM_DEFS[jarayon];
+  let html = "";
+  entries.forEach((entry, idx) => {
+    const parts = defs
+      .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
+      .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
+      .join(" · ");
+    html += `
+      <div class="card" style="flex-direction:column; align-items:stretch;" data-idx="${idx}">
+        <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div>
+      </div>
+    `;
+  });
+  app.innerHTML = html;
+  document.querySelectorAll(".card[data-idx]").forEach(card => {
+    card.onclick = () => {
+      const idx = Number(card.dataset.idx);
+      renderRequestEditScreen(jarayon, entries[idx]);
+    };
+  });
+}
+
+function renderRequestEditScreen(jarayon, entry) {
+  headerTitle.textContent = "Tahrirlashni so'rash";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderHistoryList(jarayon, "");
+  footerBar.classList.remove("hidden");
+
+  const defs = FORM_DEFS[jarayon];
+  const parts = defs
+    .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
+    .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
+    .join("<br>");
+  app.innerHTML = `
+    <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+      <div style="font-size:13px; line-height:1.7;">${parts}</div>
+    </div>
+    <div id="formMsg"></div>
+    <div class="field">
+      <label>Nega o'zgartirish kerak? (sabab)</label>
+      <textarea id="editSabab" placeholder="masalan: Факт miqdorda xatolik bor edi"></textarea>
+    </div>
+  `;
+  submitBtn.textContent = "Adminga so'rov yuborish";
+  submitBtn.onclick = async () => {
+    const sabab = document.getElementById("editSabab").value.trim();
+    const msgEl = document.getElementById("formMsg");
+    if (!sabab) { msgEl.innerHTML = `<div class="msg msg-error">Sababni yozish shart.</div>`; return; }
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Yuborilmoqda...";
+    const res = await apiPost({ action: "requestEdit", telegramId, jarayon, yozuvId: entry.yozuvId, sabab });
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Adminga so'rov yuborish";
+    if (res.ok) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      alert("So'rov yuborildi. Admin tasdiqlagach, \"Ochilgan tahrirlar\" bo'limida tuzatishingiz mumkin bo'ladi.");
+      renderMenu();
+    } else {
+      msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
+    }
+  };
+}
+
+/** Admin panel: ko'rib chiqilmagan tahrirlash so'rovlari, Tasdiqlash/Rad etish */
+function renderAdminPanel() {
+  headerTitle.textContent = "Admin panel";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
+
+  const list = bootstrap.pendingRequests || [];
+  if (list.length === 0) {
+    app.innerHTML = `<div class="center-msg">Hozircha kutayotgan so'rovlar yo'q.</div>`;
+    return;
+  }
+  let html = "";
+  list.forEach((r, idx) => {
+    let eskiText = "";
+    try {
+      const eski = JSON.parse(r.eski);
+      const defs = FORM_DEFS[r.jarayon] || [];
+      eskiText = defs.filter(f => eski[f.k]).map(f => `${f.label}: ${eski[f.k]}`).join(" · ");
+    } catch (e) { /* ignore */ }
+    html += `
+      <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span class="title">${r.jarayon}</span>
+          <span style="font-size:12px; color:var(--tg-hint);">${r.vaqt}</span>
+        </div>
+        <div style="font-size:13px; margin-bottom:4px;">👤 ${r.soraganFio}</div>
+        <div style="font-size:13px; color:var(--tg-hint); margin-bottom:4px;">Sabab: ${r.sabab || "-"}</div>
+        <div style="font-size:12px; color:var(--tg-hint); margin-bottom:10px;">${eskiText}</div>
+        <div style="display:flex; gap:10px;">
+          <button data-idx="${idx}" data-decision="approve" class="reviewBtn" style="flex:1; padding:10px; border:none; border-radius:8px; background:var(--accent-ok); color:#fff; font-weight:600;">Tasdiqlash</button>
+          <button data-idx="${idx}" data-decision="reject" class="reviewBtn" style="flex:1; padding:10px; border:none; border-radius:8px; background:var(--accent-danger); color:#fff; font-weight:600;">Rad etish</button>
+        </div>
+      </div>
+    `;
+  });
+  app.innerHTML = html;
+  document.querySelectorAll(".reviewBtn").forEach(btn => {
+    btn.onclick = async () => {
+      const idx = Number(btn.dataset.idx);
+      const decision = btn.dataset.decision;
+      const r = list[idx];
+      if (!confirm((decision === "approve" ? "Tasdiqlaysizmi" : "Rad etasizmi") + "? (" + r.jarayon + ", " + r.soraganFio + ")")) return;
+      btn.disabled = true;
+      const res = await apiPost({ action: "reviewEditRequest", telegramId, reqId: r.reqId, decision });
+      if (res.ok) {
+        bootstrap.pendingRequests = bootstrap.pendingRequests.filter(x => x.reqId !== r.reqId);
+        renderAdminPanel();
+      } else {
+        alert(res.error || "Xatolik");
+        btn.disabled = false;
+      }
+    };
+  });
 }
 
 init();
