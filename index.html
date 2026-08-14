@@ -366,6 +366,10 @@ async function renderMenu() {
     <div class="op-info" style="margin-top:-10px;">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}
       <a href="#" id="changeShiftLink" style="margin-left:8px;">(o'zgartirish)</a>
     </div>
+    <div class="card" id="tabelCard">
+      <span class="title">📋 Табель (xodimlar davomati)</span>
+      <span class="chevron">${countFor("Табель")} ta ›</span>
+    </div>
     <div id="menuList"></div>
     <div class="section-title">Smenani yakunlash</div>
     <div class="card" id="reviewCard">
@@ -390,6 +394,7 @@ async function renderMenu() {
       <span class="chevron">${pendingCount} ta so'rov ›</span>
     </div>` : ""}
   `;
+  document.getElementById("tabelCard").onclick = () => renderTabel();
   const list = document.getElementById("menuList");
   jarayonlar.forEach(j => {
     const c = countFor(j);
@@ -431,6 +436,195 @@ function renderForm(jarayon) {
   submitBtn.onclick = () => submitCurrentForm(defs);
 }
 
+/** Butun sex jamoasi uchun kunlik/smenali davomat (Табель) — bitta ekranda barcha
+ *  xodimlar ro'yxati, standart holat oldindan to'ldirilgan, faqat og'ishlar belgilanadi. */
+async function renderTabel() {
+  headerTitle.textContent = "Табель";
+  backBtn.classList.remove("hidden");
+  backBtn.onclick = () => renderMenu();
+  footerBar.classList.remove("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+
+  const res = await apiGet({ action: "tabelData", sana: shiftState.sana, smena: shiftState.smena });
+  if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
+
+  const allXodimlar = res.xodimlar; // butun sex xodimlari (barcha smenalar)
+  const existing = res.existing;
+  const deviationTypes = ["Кеч келган", "Эрта кетган", "Ташқарига чиқди"];
+  const ishOptions = bootstrap.ishOrinlari || [];
+
+  // "Турi ЧЧ:ММ-ЧЧ:ММ; Турi ЧЧ:ММ-ЧЧ:ММ" ko'rinishidagi matnni massivga aylantiradi
+  function parseStatusText(text) {
+    if (!text) return [];
+    return text.split(";").map(s => s.trim()).filter(Boolean).map(seg => {
+      const m = seg.match(/^(.+?)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+      return m ? { turi: m[1], dan: m[2], gacha: m[3] } : null;
+    }).filter(Boolean);
+  }
+  function formatStatusText(devs) {
+    return devs.filter(d => d.turi && d.dan && d.gacha).map(d => `${d.turi} ${d.dan}-${d.gacha}`).join("; ");
+  }
+
+  // Asosiy ro'yxat: joriy smenaga biriktirilgan xodimlar (barchasi bo'yicha to'ldirish shart)
+  const primary = allXodimlar.filter(x => String(x.smena) === String(shiftState.smena));
+  // Qo'shimcha: avval saqlangan, lekin boshqa smenaga tegishli xodimlar (masalan, o'tgan safar qo'shilgan)
+  const primaryTabNos = new Set(primary.map(x => String(x.tabNo)));
+  const extraFromExisting = Object.keys(existing)
+    .filter(tabNo => !primaryTabNos.has(tabNo))
+    .map(tabNo => allXodimlar.find(x => String(x.tabNo) === tabNo))
+    .filter(Boolean);
+
+  let renderList = primary.concat(extraFromExisting); // seans davomida "+ qo'shish" bilan kengayadi
+  const usedTabNos = new Set(renderList.map(x => String(x.tabNo)));
+  let rowCounter = 0;
+
+  app.innerHTML = `
+    <div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} biriktirilgan: ${primary.length} kishi</div>
+    <div class="field">
+      <input type="text" id="tabelSearch" placeholder="Ro'yxatdan ism bo'yicha qidirish...">
+    </div>
+    <div id="tabelList"></div>
+    <div class="section-title">Boshqa smenadan kelgan xodim</div>
+    <div class="field">
+      <input type="text" id="addSearch" placeholder="Ism yoki Таб.номер bo'yicha qidirib qo'shish...">
+      <div id="addResults" style="margin-top:6px;"></div>
+    </div>
+  `;
+  const listEl = document.getElementById("tabelList");
+
+  function renderDeviations(idx, devs) {
+    const container = document.getElementById("t_devs_" + idx);
+    container.innerHTML = "";
+    devs.forEach((d, di) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; gap:6px; align-items:center; margin-bottom:6px;";
+      const typeOpts = deviationTypes.map(t => `<option value="${t}" ${t===d.turi?"selected":""}>${t}</option>`).join("");
+      row.innerHTML = `
+        <select style="flex:1.4;" data-role="turi">${typeOpts}</select>
+        <input type="time" style="flex:1;" data-role="dan" value="${d.dan||""}">
+        <input type="time" style="flex:1;" data-role="gacha" value="${d.gacha||""}">
+        <button type="button" style="background:none;border:none;color:var(--accent-danger);font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
+      `;
+      row.querySelector("select").addEventListener("change", e => { d.turi = e.target.value; });
+      row.querySelectorAll("input").forEach(inp => {
+        inp.addEventListener("change", e => { d[e.target.dataset.role] = e.target.value; });
+      });
+      row.querySelector("button").onclick = () => {
+        devs.splice(di, 1);
+        renderDeviations(idx, devs);
+      };
+      container.appendChild(row);
+    });
+  }
+
+  function addEmployeeRow(x) {
+    const idx = rowCounter++;
+    const ex = existing[String(x.tabNo)];
+    const rMes2 = ex ? ex.fields.rMes2 : x.rMes;
+    const prim = ex ? ex.fields.primechanie : "";
+    const devs = ex ? parseStatusText(ex.fields.statusText) : [];
+
+    const rMes2Opts = ishOptions.map(o => `<option value="${o.kod}" ${String(o.kod)===String(rMes2)?"selected":""}>${o.kod}</option>`).join("");
+    const smenaBelgisi = String(x.smena) !== String(shiftState.smena) ? ` · <span style="color:var(--tg-link);">boshqa smena: ${x.smena}</span>` : "";
+
+    const div = document.createElement("div");
+    div.className = "card";
+    div.dataset.tabno = String(x.tabNo);
+    div.style.cssText = "flex-direction:column; align-items:stretch; cursor:default;";
+    div.dataset.name = String(x.fio).toLowerCase();
+    div.innerHTML = `
+      <div style="font-weight:600; font-size:14px; margin-bottom:2px;">${x.fio}</div>
+      <div style="font-size:12px; color:var(--tg-hint); margin-bottom:8px;">Таб. № ${x.tabNo} · ${x.profession} · Р.Мес: ${x.rMes || "—"}${smenaBelgisi}</div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Р.Мес2 (fakt)</label>
+        <select id="t_rmes2_${idx}"><option value="">—</option>${rMes2Opts}</select>
+      </div>
+      <div class="field" style="margin-bottom:6px;">
+        <label>Og'ishlar (kech kelgan / erta ketgan / tashqariga chiqdi) — kerak bo'lsa qo'shing</label>
+        <div id="t_devs_${idx}"></div>
+        <button type="button" id="t_adddev_${idx}" style="background:none;border:1px dashed var(--tg-hint);border-radius:8px;padding:8px;width:100%;color:var(--tg-link);font-size:13px;cursor:pointer;">+ Og'ish qo'shish</button>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Примечание</label>
+        <input type="text" id="t_prim_${idx}" value="${prim}">
+      </div>
+    `;
+    listEl.appendChild(div);
+    renderDeviations(idx, devs);
+    document.getElementById("t_adddev_" + idx).onclick = () => {
+      devs.push({ turi: deviationTypes[0], dan: "", gacha: "" });
+      renderDeviations(idx, devs);
+    };
+    return { x, idx, devs };
+  }
+
+  let rows = renderList.map(x => addEmployeeRow(x));
+  updateSubmitLabel();
+
+  document.getElementById("tabelSearch").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    listEl.querySelectorAll(".card").forEach(card => {
+      card.style.display = card.dataset.name.includes(q) ? "" : "none";
+    });
+  });
+
+  document.getElementById("addSearch").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const resultsEl = document.getElementById("addResults");
+    resultsEl.innerHTML = "";
+    if (!q) return;
+    const matches = allXodimlar
+      .filter(x => !usedTabNos.has(String(x.tabNo)))
+      .filter(x => String(x.fio).toLowerCase().includes(q) || String(x.tabNo).includes(q))
+      .slice(0, 8);
+    matches.forEach(x => {
+      const item = document.createElement("div");
+      item.className = "card";
+      item.style.padding = "10px 14px";
+      item.innerHTML = `<span class="title" style="font-size:14px;">${x.fio}</span><span class="chevron">Таб.№${x.tabNo} · Смена ${x.smena || "—"} · +</span>`;
+      item.onclick = () => {
+        usedTabNos.add(String(x.tabNo));
+        rows.push(addEmployeeRow(x));
+        updateSubmitLabel();
+        document.getElementById("addSearch").value = "";
+        resultsEl.innerHTML = "";
+      };
+      resultsEl.appendChild(item);
+    });
+  });
+
+  function updateSubmitLabel() {
+    submitBtn.textContent = "Saqlash (" + rows.length + " ta xodim)";
+  }
+
+  submitBtn.onclick = async () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saqlanmoqda...";
+    const entries = rows.map(({ x, idx, devs }) => ({
+      tabNo: x.tabNo, fio: x.fio, rMes: x.rMes,
+      rMes2: document.getElementById("t_rmes2_" + idx).value,
+      statusText: formatStatusText(devs),
+      primechanie: document.getElementById("t_prim_" + idx).value
+    }));
+    try {
+      const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries });
+      if (res2.ok) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        shiftEntries = null; // Табель o'zgargani uchun keyingi menyu ochilishida qayta yuklaymiz
+        alert(res2.message);
+        renderMenu();
+      } else {
+        alert(res2.error || "Xatolik");
+      }
+    } catch (err) {
+      alert("Tarmoq xatosi: " + err);
+    } finally {
+      submitBtn.disabled = false;
+      updateSubmitLabel();
+    }
+  };
+}
+
 function renderReview() {
   headerTitle.textContent = "Ko'rib chiqish va tasdiqlash";
   backBtn.classList.remove("hidden");
@@ -444,7 +638,21 @@ function renderReview() {
   }
 
   let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} · Jami: ${shiftEntries.length} ta yozuv</div>`;
-  shiftEntries.forEach((entry, idx) => {
+
+  const tabelEntries = shiftEntries.filter(e => e.jarayon === "Табель");
+  const otherEntries = shiftEntries.filter(e => e.jarayon !== "Табель");
+
+  if (tabelEntries.length) {
+    html += `
+      <div class="card" style="cursor:pointer;" id="tabelReviewCard">
+        <span class="title">📋 Табель</span>
+        <span class="chevron">${tabelEntries.length} ta xodim · tahrirlash ›</span>
+      </div>
+    `;
+  }
+
+  otherEntries.forEach((entry) => {
+    const idx = shiftEntries.indexOf(entry);
     const defs = FORM_DEFS[entry.jarayon];
     const parts = defs
       .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
@@ -464,6 +672,10 @@ function renderReview() {
     `;
   });
   app.innerHTML = html;
+
+  if (tabelEntries.length) {
+    document.getElementById("tabelReviewCard").onclick = () => renderTabel();
+  }
 
   document.querySelectorAll(".editEntryBtn").forEach(btn => {
     btn.onclick = () => {
