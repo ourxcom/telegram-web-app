@@ -18,60 +18,30 @@
     --accent-ok: #2ecc71;
   }
   *{box-sizing:border-box;}
-  body{
-    margin:0; padding:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    background:var(--tg-bg); color:var(--tg-text);
-    padding-bottom:90px;
-  }
-  header{
-    padding:16px; position:sticky; top:0; background:var(--tg-bg); z-index:10;
-    border-bottom:1px solid var(--tg-secbg);
-    display:flex; align-items:center; gap:10px;
-  }
-  header h1{font-size:17px; margin:0; flex:1;}
-  .back-btn{
-    background:none; border:none; color:var(--tg-link); font-size:16px; cursor:pointer; padding:4px 0;
-  }
+  body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--tg-bg);color:var(--tg-text);padding-bottom:90px;}
+  header{padding:16px;position:sticky;top:0;background:var(--tg-bg);z-index:10;border-bottom:1px solid var(--tg-secbg);display:flex;align-items:center;gap:10px;}
+  header h1{font-size:17px;margin:0;flex:1;}
+  .back-btn{background:none;border:none;color:var(--tg-link);font-size:16px;cursor:pointer;padding:4px 0;}
   main{padding:16px;}
-  .card{
-    background:var(--tg-secbg); border-radius:14px; padding:14px 16px;
-    margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
-    cursor:pointer; transition:transform .1s;
-  }
+  .card{background:var(--tg-secbg);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .1s;}
   .card:active{transform:scale(0.98);}
-  .card .title{font-size:15px; font-weight:600;}
-  .card .chevron{color:var(--tg-hint); font-size:18px;}
+  .card .title{font-size:15px;font-weight:600;}
+  .card .chevron{color:var(--tg-hint);font-size:18px;}
   .field{margin-bottom:14px;}
-  .field label{display:block; font-size:13px; color:var(--tg-hint); margin-bottom:6px;}
-  .field input, .field select, .field textarea{
-    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--tg-secbg);
-    background:var(--tg-secbg); color:var(--tg-text); font-size:15px; font-family:inherit;
-  }
-  .field textarea{resize:vertical; min-height:50px;}
-  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .section-title{
-    font-size:13px; font-weight:700; text-transform:uppercase; color:var(--tg-hint);
-    margin:20px 0 8px; letter-spacing:.4px;
-  }
-  .footer-bar{
-    position:fixed; bottom:0; left:0; right:0; padding:12px 16px;
-    background:var(--tg-bg); border-top:1px solid var(--tg-secbg);
-  }
-  .btn-primary{
-    width:100%; padding:14px; border:none; border-radius:12px;
-    background:var(--tg-btn); color:var(--tg-btn-text); font-size:16px; font-weight:600;
-    cursor:pointer;
-  }
+  .field label{display:block;font-size:13px;color:var(--tg-hint);margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--tg-secbg);background:var(--tg-secbg);color:var(--tg-text);font-size:15px;font-family:inherit;}
+  .field textarea{resize:vertical;min-height:50px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .section-title{font-size:13px;font-weight:700;text-transform:uppercase;color:var(--tg-hint);margin:20px 0 8px;letter-spacing:.4px;}
+  .footer-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 16px;background:var(--tg-bg);border-top:1px solid var(--tg-secbg);}
+  .btn-primary{width:100%;padding:14px;border:none;border-radius:12px;background:var(--tg-btn);color:var(--tg-btn-text);font-size:16px;font-weight:600;cursor:pointer;}
   .btn-primary:disabled{opacity:.5;}
-  .msg{
-    padding:12px 14px; border-radius:10px; font-size:14px; margin-bottom:14px;
-  }
-  .msg-error{background:rgba(224,72,62,.12); color:var(--accent-danger);}
-  .msg-ok{background:rgba(46,204,113,.12); color:#1a9c53;}
+  .msg{padding:12px 14px;border-radius:10px;font-size:14px;margin-bottom:14px;}
+  .msg-error{background:rgba(224,72,62,.12);color:var(--accent-danger);}
+  .msg-ok{background:rgba(46,204,113,.12);color:#1a9c53;}
   .hidden{display:none !important;}
-  .center-msg{text-align:center; padding:60px 20px; color:var(--tg-hint); font-size:14px;}
-  .op-info{font-size:13px; color:var(--tg-hint); margin-bottom:16px;}
+  .center-msg{text-align:center;padding:60px 20px;color:var(--tg-hint);font-size:14px;}
+  .op-info{font-size:13px;color:var(--tg-hint);margin-bottom:16px;}
   .reg-form input{margin-bottom:12px;}
 </style>
 </head>
@@ -102,122 +72,25 @@ const telegramId = tgUser ? tgUser.id : (new URLSearchParams(location.search).ge
 const telegramUsername = tgUser ? (tgUser.username || "") : "";
 
 // ====== HOLAT ======
-let bootstrap = null; // {operator, mahsulotlar, tuxtalishSabablari, jarayonlar}
+let bootstrap = null; // {operator, sex, mahsulotlar, tuxtalishSabablari, ishOrinlari, jarayonlar, formConfig, isAdmin, ...}
 let currentJarayon = null;
-let shiftState = null; // {sana, smena}
-let shiftEntries = null; // null = hali yuklanmagan; [] = yuklangan, bo'sh
+let shiftState = null;
+let shiftEntries = null;
 
-const SHIFT_KEY = "wms_shift_v1";
-function loadShift() {
-  try {
-    const raw = localStorage.getItem(SHIFT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) { return null; }
-}
+const SHIFT_KEY = "wms_shift_v2";
+function loadShift() { try { const r = localStorage.getItem(SHIFT_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
 function saveShift(s) { localStorage.setItem(SHIFT_KEY, JSON.stringify(s)); }
 function clearShift() { localStorage.removeItem(SHIFT_KEY); }
 
-// Har bir jarayon uchun forma maydonlari tavsifi
-// type: text | date | select | number | time
-const FORM_DEFS = {
-  "Гранулятор": [
-    {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
-    {k:"fakt", label:"Факт", type:"number"},
-    {k:"brakLitnik", label:"Брак литник", type:"number"},
-    {k:"brakKukun", label:"Брак кукун", type:"number"},
-    {k:"tDan", label:"Т ..Дан", type:"time"},
-    {k:"tGacha", label:"Т ..Гача", type:"time"},
-    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ],
-  "Мотан": [
-    {k:"polProdukt", label:"Пол.Продукт", type:"select", options:["Марка ППГ","Марка ПЭГ"]},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"edIzm", label:"Ед. изм", type:"text", def:"кг"},
-    {k:"fakt", label:"Факт", type:"number"},
-    {k:"tDan", label:"Т ..Дан", type:"time"},
-    {k:"tGacha", label:"Т ..Гача", type:"time"},
-    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ],
-  "Приготовление раствор": [
-    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"fakt", label:"Факт", type:"number"},
-    {k:"seriyaBoshlanishi", label:"Серия бошланиши", type:"time"},
-    {k:"seriyaTugashi", label:"Серия тугаши", type:"time"},
-    {k:"brak", label:"Брак", type:"number"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ],
-  "Дозатор": [
-    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
-    {k:"edIzm", label:"Ед. изм", type:"select", options:["А","П 10","П 50"]},
-    {k:"faktDoz", label:"Факт Доз", type:"number"},
-    {k:"brakOkk", label:"Брак окк.", type:"number"},
-    {k:"brakAmp", label:"Брак амп.", type:"number"},
-    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
-    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
-    {k:"tDan", label:"Т ..дан", type:"time"},
-    {k:"tGacha", label:"Т ..гача", type:"time"},
-    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ],
-  "Стерилизация": [
-    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
-    {k:"fakt", label:"Факт", type:"number"},
-    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
-    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
-    {k:"tDan", label:"Т ..дан", type:"time"},
-    {k:"tGacha", label:"Т ..гача", type:"time"},
-    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ],
-  "Упаковка": [
-    {k:"naimenovanie", label:"Наименование", type:"mahsulot"},
-    {k:"seriya", label:"Серия", type:"text"},
-    {k:"lot", label:"Лот", type:"select", options:["А","Б","С","Д"]},
-    {k:"edIzm", label:"Ед. изм", type:"select", options:["А","П 10","П 50"]},
-    {k:"qadoqTuri", label:"Қадоқ тури", type:"select", options:["ГП","In bulk","Доупак"]},
-    {k:"fakt", label:"Факт", type:"number"},
-    {k:"gofra", label:"Гофра (Склад карантин)", type:"number"},
-    {k:"brakAmp", label:"Брак амп.", type:"number"},
-    {k:"brakMex", label:"Брак мех.", type:"number"},
-    {k:"brakDoza", label:"Брак доза.", type:"number"},
-    {k:"brakUtechka", label:"Брак утечка.", type:"number"},
-    {k:"brakInst", label:"Брак инст", type:"number"},
-    {k:"brakGof", label:"Брак гоф", type:"number"},
-    {k:"brakGrEt", label:"Брак гр.эт", type:"number"},
-    {k:"lotBoshiDan", label:"Лот боши ...дан", type:"number"},
-    {k:"lotOxiriGacha", label:"Лот охири ...гача", type:"number"},
-    {k:"tDan", label:"Т ..дан", type:"time"},
-    {k:"tGacha", label:"Т ..гача", type:"time"},
-    {k:"tuxtalish", label:"Тўхталиш", type:"tuxtalish"},
-    {k:"primechanie", label:"Примечание", type:"textarea"}
-  ]
-};
+function todayParts() { const d = new Date(); return { dd: d.getDate(), mm: d.getMonth()+1, yyyy: d.getFullYear() }; }
+function formatSanaDisplay(sana) { return sana; }
 
 const app = document.getElementById("app");
 const headerTitle = document.getElementById("headerTitle");
 const backBtn = document.getElementById("backBtn");
 const footerBar = document.getElementById("footerBar");
 const submitBtn = document.getElementById("submitBtn");
-
 backBtn.onclick = () => renderMenu();
-
-function todayParts() {
-  const d = new Date();
-  return { dd: d.getDate(), mm: d.getMonth()+1, yyyy: d.getFullYear() };
-}
-// Sana endi "dd.mm.yyyy" ko'rinishidagi oddiy MATN sifatida saqlanadi — hech qanday
-// Date obyekti yoki native <input type="date"> ishlatilmaydi, shuning uchun
-// timezone yoki WebView'ga xos konvertatsiya xatolari butunlay yo'q qilinadi.
-function formatSanaDisplay(sana) { return sana; } // allaqachon "dd.mm.yyyy" ko'rinishida
 
 async function apiGet(params) {
   const url = API_URL + "?" + new URLSearchParams(params).toString();
@@ -225,410 +98,336 @@ async function apiGet(params) {
   return res.json();
 }
 async function apiPost(payload) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" }, // preflightsiz yuborish uchun
-    body: JSON.stringify(payload)
-  });
+  const res = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(payload) });
   return res.json();
 }
 
+// ============================================================
+// INIT / RO'YXATDAN O'TISH / SMENA BOSHLASH
+// ============================================================
+
 async function init() {
   if (!API_URL || API_URL.indexOf("PASTE_YOUR") === 0) {
-    app.innerHTML = `<div class="msg msg-error">API_URL sozlanmagan. index.html faylida API_URL o'zgaruvchisiga Apps Script Web App manzilini kiriting.</div>`;
+    app.innerHTML = `<div class="msg msg-error">API_URL sozlanmagan.</div>`;
     return;
   }
   shiftState = loadShift();
-  // Smena allaqachon tanlangan bo'lsa, bitta so'rovda operator + statik ro'yxatlar +
-  // joriy smena yozuvlarini birga olamiz (2 ta alohida so'rov o'rniga 1 ta — tezroq).
   const params = { action: "bootstrap", telegramId };
   if (shiftState) { params.sana = shiftState.sana; params.smena = shiftState.smena; }
   const data = await apiGet(params);
-  if (!data.ok) {
-    app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`;
-    return;
-  }
+  if (!data.ok) { app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`; return; }
   bootstrap = data;
-  if (!bootstrap.operator) {
-    renderRegister();
-    return;
-  }
-  if (!shiftState) {
-    renderShiftStart();
-  } else {
-    shiftEntries = data.entries || [];
-    renderMenu();
-  }
+  if (!bootstrap.operator) { renderRegister(); return; }
+  if (!shiftState) { renderShiftStart(); }
+  else { shiftEntries = data.entries || []; renderMenu(); }
 }
 
 function renderRegister() {
   headerTitle.textContent = "Ro'yxatdan o'tish";
-  backBtn.classList.add("hidden");
-  footerBar.classList.add("hidden");
+  backBtn.classList.add("hidden"); footerBar.classList.add("hidden");
   app.innerHTML = `
-    <div class="msg msg-error">Siz hali ro'yxatdan o'tmagansiz. Таб.номерингizni kiriting — u Operatorlar ro'yxatida oldindan mavjud bo'lishi kerak.</div>
-    <div class="reg-form">
-      <div class="field">
-        <label>Таб.номер</label>
-        <input type="number" id="regTabNo" placeholder="masalan: 6721">
-      </div>
-    </div>
-    <button class="btn-primary" id="regBtn">Ro'yxatdan o'tish</button>
-  `;
+    <div class="msg msg-error">Siz hali ro'yxatdan o'tmagansiz. Таб.номерингizni kiriting.</div>
+    <div class="reg-form"><div class="field"><label>Таб.номер</label><input type="number" id="regTabNo" placeholder="masalan: 6721"></div></div>
+    <button class="btn-primary" id="regBtn">Ro'yxatdan o'tish</button>`;
   document.getElementById("regBtn").onclick = async () => {
     const tabNo = document.getElementById("regTabNo").value.trim();
     if (!tabNo) return;
     const res = await apiPost({ action: "register", tabNo, telegramId, telegramUsername });
-    if (res.ok) {
-      init();
-    } else {
-      alert(res.error || "Xatolik");
-    }
+    if (res.ok) init(); else alert(res.error || "Xatolik");
   };
 }
 
 function renderShiftStart() {
   headerTitle.textContent = "Smenani boshlash";
-  backBtn.classList.add("hidden");
-  footerBar.classList.add("hidden");
+  backBtn.classList.add("hidden"); footerBar.classList.add("hidden");
   const t = todayParts();
-  const kunOptions = Array.from({length:31}, (_,i)=>i+1)
-    .map(d => `<option value="${d}" ${d===t.dd?"selected":""}>${d}</option>`).join("");
+  const kunOptions = Array.from({length:31},(_,i)=>i+1).map(d=>`<option value="${d}" ${d===t.dd?"selected":""}>${d}</option>`).join("");
   const oyNomlari = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
-  const oyOptions = oyNomlari.map((n,i) => `<option value="${i+1}" ${(i+1)===t.mm?"selected":""}>${n}</option>`).join("");
-  const yilOptions = [t.yyyy-1, t.yyyy, t.yyyy+1].map(y => `<option value="${y}" ${y===t.yyyy?"selected":""}>${y}</option>`).join("");
+  const oyOptions = oyNomlari.map((n,i)=>`<option value="${i+1}" ${(i+1)===t.mm?"selected":""}>${n}</option>`).join("");
+  const yilOptions = [t.yyyy-1,t.yyyy,t.yyyy+1].map(y=>`<option value="${y}" ${y===t.yyyy?"selected":""}>${y}</option>`).join("");
 
   app.innerHTML = `
-    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
-    <div class="field">
-      <label>Sana</label>
+    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession} · Sex: ${bootstrap.sex}</div>
+    <div class="field"><label>Sana</label>
       <div class="row2" style="grid-template-columns:1fr 1.4fr 1fr;">
-        <select id="shiftKun">${kunOptions}</select>
-        <select id="shiftOy">${oyOptions}</select>
-        <select id="shiftYil">${yilOptions}</select>
+        <select id="shiftKun">${kunOptions}</select><select id="shiftOy">${oyOptions}</select><select id="shiftYil">${yilOptions}</select>
       </div>
     </div>
-    <div class="field">
-      <label>Смена</label>
-      <select id="shiftSmena">
-        <option value="">— tanlang —</option>
-        <option value="А">А</option>
-        <option value="Б">Б</option>
-        <option value="С">С</option>
-        <option value="Д">Д</option>
-      </select>
+    <div class="field"><label>Смена</label>
+      <select id="shiftSmena"><option value="">— tanlang —</option><option value="А">А</option><option value="Б">Б</option><option value="С">С</option><option value="Д">Д</option></select>
     </div>
-    <button class="btn-primary" id="startShiftBtn">Boshlash</button>
-  `;
+    <button class="btn-primary" id="startShiftBtn">Boshlash</button>`;
   document.getElementById("startShiftBtn").onclick = () => {
     const kun = document.getElementById("shiftKun").value.padStart(2,"0");
     const oy = document.getElementById("shiftOy").value.padStart(2,"0");
     const yil = document.getElementById("shiftYil").value;
     const smena = document.getElementById("shiftSmena").value;
-    if (!smena) {
-      alert("Смена tanlanishi shart.");
-      return;
-    }
-    const sana = `${kun}.${oy}.${yil}`; // sof matn, hech qanday Date/timezone konvertatsiyasi yo'q
-    shiftState = { sana, smena };
+    if (!smena) { alert("Смена tanlanishi shart."); return; }
+    shiftState = { sana: `${kun}.${oy}.${yil}`, smena };
     saveShift(shiftState);
-    shiftEntries = []; // yangi smena — hali yozuv yo'q, server so'rovi shart emas
+    shiftEntries = [];
     renderMenu();
   };
 }
+
+// ============================================================
+// MENYU
+// ============================================================
 
 async function refreshShiftEntries() {
   const res = await apiGet({ action: "shiftEntries", telegramId, sana: shiftState.sana, smena: shiftState.smena });
   shiftEntries = res.ok ? res.entries : [];
 }
-
-function countFor(jarayon) {
-  return (shiftEntries || []).filter(e => e.jarayon === jarayon).length;
-}
+function countFor(jarayon) { return (shiftEntries || []).filter(e => e.jarayon === jarayon).length; }
 
 async function renderMenu() {
   currentJarayon = null;
   headerTitle.textContent = "Jarayonni tanlang";
-  backBtn.classList.add("hidden");
-  footerBar.classList.add("hidden");
-  if (shiftEntries === null) {
-    app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-    await refreshShiftEntries();
-  }
+  backBtn.classList.add("hidden"); footerBar.classList.add("hidden");
+  if (shiftEntries === null) { app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`; await refreshShiftEntries(); }
 
-  const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
+  const allJarayonlar = bootstrap.jarayonlar || [];
+  const toxSuffix = " (тўхталиш)";
+  const cehTox = "Цех (тўхталиш)";
+  const hasCehTox = allJarayonlar.indexOf(cehTox) !== -1;
+  const realJarayonlar = allJarayonlar.filter(j => !j.endsWith(toxSuffix));
+  const toxSet = new Set(allJarayonlar.filter(j => j.endsWith(toxSuffix) && j !== cehTox).map(j => j.slice(0, -toxSuffix.length)));
   const totalCount = shiftEntries.length;
   const reopenedCount = (bootstrap.reopenedEdits || []).length;
   const pendingCount = (bootstrap.pendingRequests || []).length;
 
   app.innerHTML = `
-    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession} · ${bootstrap.sex}</div>
     <div class="op-info" style="margin-top:-10px;">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}
-      <a href="#" id="changeShiftLink" style="margin-left:8px;">(o'zgartirish)</a>
-    </div>
-    <div class="card" id="tabelCard">
-      <span class="title">📋 Табель (xodimlar davomati)</span>
-      <span class="chevron">${countFor("Табель")} ta ›</span>
-    </div>
+      <a href="#" id="changeShiftLink" style="margin-left:8px;">(o'zgartirish)</a></div>
+    <div class="card" id="tabelCard"><span class="title">📋 Табель (xodimlar davomati)</span><span class="chevron">${countFor("Табель")} ta ›</span></div>
+    ${hasCehTox ? `<div class="card" id="cehToxCard"><span class="title">🏭 Цех (тўхталиш)</span><span class="chevron">${countFor(cehTox)} ta ›</span></div>` : ""}
     <div id="menuList"></div>
     <div class="section-title">Smenani yakunlash</div>
-    <div class="card" id="reviewCard">
-      <span class="title">Ma'lumotlarni ko'rib chiqish va tasdiqlash</span>
-      <span class="chevron">${totalCount} ta ›</span>
-    </div>
-    ${reopenedCount ? `
-    <div class="section-title">Tahrirlash</div>
-    <div class="card" id="reopenedCard">
-      <span class="title">🔓 Ochilgan tahrirlar</span>
-      <span class="chevron">${reopenedCount} ta ›</span>
-    </div>` : ""}
+    <div class="card" id="reviewCard"><span class="title">Ma'lumotlarni ko'rib chiqish va tasdiqlash</span><span class="chevron">${totalCount} ta ›</span></div>
+    ${reopenedCount ? `<div class="section-title">Tahrirlash</div><div class="card" id="reopenedCard"><span class="title">🔓 Ochilgan tahrirlar</span><span class="chevron">${reopenedCount} ta ›</span></div>` : ""}
     <div class="section-title">Tarix</div>
-    <div class="card" id="historyCard">
-      <span class="title">🕘 Tasdiqlangan yozuvlarni ko'rish / tahrirlash so'rash</span>
-      <span class="chevron">›</span>
-    </div>
-    ${bootstrap.isAdmin ? `
-    <div class="section-title">Admin</div>
-    <div class="card" id="adminCard">
-      <span class="title">🛡 Admin panel</span>
-      <span class="chevron">${pendingCount} ta so'rov ›</span>
-    </div>` : ""}
+    <div class="card" id="myShiftsCard"><span class="title">🗓 Mening smenalarim</span><span class="chevron">›</span></div>
+    <div class="card" id="historyCard"><span class="title">🕘 Tasdiqlangan yozuvlarni ko'rish / tahrirlash so'rash</span><span class="chevron">›</span></div>
+    ${bootstrap.isAdmin ? `<div class="section-title">Admin</div><div class="card" id="adminCard"><span class="title">🛡 Admin panel</span><span class="chevron">${pendingCount} ta so'rov ›</span></div>` : ""}
   `;
   document.getElementById("tabelCard").onclick = () => renderTabel();
+  if (hasCehTox) document.getElementById("cehToxCard").onclick = () => renderForm(cehTox);
   const list = document.getElementById("menuList");
-  jarayonlar.forEach(j => {
-    const c = countFor(j);
+  realJarayonlar.forEach(j => {
+    const c = countFor(j) + (toxSet.has(j) ? countFor(j + toxSuffix) : 0);
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `<span class="title">${j}</span><span class="chevron">${c ? c + " ta · " : ""}›</span>`;
-    div.onclick = () => renderForm(j);
+    div.onclick = () => toxSet.has(j) ? renderJarayonChooser(j, j + toxSuffix) : renderForm(j);
     list.appendChild(div);
   });
   document.getElementById("reviewCard").onclick = () => renderReview();
   if (reopenedCount) document.getElementById("reopenedCard").onclick = () => renderReopenedList();
+  document.getElementById("myShiftsCard").onclick = () => renderMyShifts();
   document.getElementById("historyCard").onclick = () => renderHistoryPicker();
   if (bootstrap.isAdmin) document.getElementById("adminCard").onclick = () => renderAdminPanel();
   document.getElementById("changeShiftLink").onclick = (e) => {
     e.preventDefault();
-    if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi, faqat yangi yozuvlar uchun yangi sana/smena ishlatiladi. Davom etasizmi?")) {
-      clearShift();
-      shiftState = null;
-      shiftEntries = null;
-      renderShiftStart();
+    if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi. Davom etasizmi?")) {
+      clearShift(); shiftState = null; shiftEntries = null; renderShiftStart();
     }
   };
+}
+
+// ============================================================
+// DINAMIK FORMA MOTORI (server konfiguratsiyasidan quriladi)
+// ============================================================
+
+/** bootstrap.formConfig[jarayon] dan olingan maydonlar ro'yxatini forma HTML'iga aylantiradi */
+function renderField(f, def) {
+  const id = "f_" + f.key;
+  const dv = def !== undefined && def !== null ? def : "";
+  if (f.type === "select") {
+    const opts = (f.options || []).map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
+  }
+  if (f.type === "mahsulot_ref") {
+    const opts = (bootstrap.mahsulotlar || []).map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">— tanlang —</option>${opts}</select></div>`;
+  }
+  if (f.type === "tuxtalish_ref") {
+    const opts = (bootstrap.tuxtalishSabablari || []).map(o => `<option value="${o.nomi}" ${String(o.nomi)===String(dv)?"selected":""}>${o.nomi}</option>`).join("");
+    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
+  }
+  if (f.type === "textarea") return `<div class="field"><label>${f.label}</label><textarea id="${id}">${dv}</textarea></div>`;
+  if (f.type === "time") return `<div class="field"><label>${f.label}</label><input type="time" id="${id}" value="${dv}"></div>`;
+  if (f.type === "number") return `<div class="field"><label>${f.label}</label><input type="number" inputmode="decimal" id="${id}" value="${dv}"></div>`;
+  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${dv}"></div>`;
 }
 
 function renderForm(jarayon) {
   currentJarayon = jarayon;
   headerTitle.textContent = jarayon;
-  backBtn.classList.remove("hidden");
-  footerBar.classList.remove("hidden");
+  backBtn.classList.remove("hidden"); footerBar.classList.remove("hidden");
   backBtn.onclick = () => renderMenu();
-  const defs = FORM_DEFS[jarayon];
+  const defs = bootstrap.formConfig[jarayon] || [];
   let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena}</div><div id="formMsg"></div>`;
-  defs.forEach(f => {
-    html += renderField(f);
-  });
+  defs.forEach(f => { html += renderField(f); });
   app.innerHTML = html;
-
   submitBtn.textContent = "Saqlash";
   submitBtn.onclick = () => submitCurrentForm(defs);
 }
 
-/** Butun sex jamoasi uchun kunlik/smenali davomat (Табель) — bitta ekranda barcha
- *  xodimlar ro'yxati, standart holat oldindan to'ldirilgan, faqat og'ishlar belgilanadi. */
-async function renderTabel() {
-  headerTitle.textContent = "Табель";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderMenu();
-  footerBar.classList.remove("hidden");
-  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-
-  const res = await apiGet({ action: "tabelData", sana: shiftState.sana, smena: shiftState.smena });
-  if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
-
-  const allXodimlar = res.xodimlar; // butun sex xodimlari (barcha smenalar)
-  const existing = res.existing;
-  const deviationTypes = ["Кеч келган", "Эрта кетган", "Ташқарига чиқди"];
-  const ishOptions = bootstrap.ishOrinlari || [];
-
-  // "Турi ЧЧ:ММ-ЧЧ:ММ; Турi ЧЧ:ММ-ЧЧ:ММ" ko'rinishidagi matnni massivga aylantiradi
-  function parseStatusText(text) {
-    if (!text) return [];
-    return text.split(";").map(s => s.trim()).filter(Boolean).map(seg => {
-      const m = seg.match(/^(.+?)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/);
-      return m ? { turi: m[1], dan: m[2], gacha: m[3] } : null;
-    }).filter(Boolean);
+async function submitCurrentForm(defs, confirmDuplicate) {
+  const msgEl = document.getElementById("formMsg");
+  msgEl.innerHTML = "";
+  const fields = { sana: shiftState.sana, smena: shiftState.smena };
+  defs.forEach(f => { fields[f.key] = document.getElementById("f_" + f.key).value; });
+  submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
+  try {
+    const res = await apiPost({ action: "submit", telegramId, jarayon: currentJarayon, fields, confirmDuplicate: !!confirmDuplicate });
+    if (res.ok) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
+      shiftEntries = (shiftEntries || []).concat([{ jarayon: currentJarayon, yozuvId: res.rowId, fields }]);
+      defs.forEach(f => { const el = document.getElementById("f_" + f.key); if (el) el.value = ""; });
+    } else if (res.duplicate) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
+      askDuplicateConfirm(res.error, () => submitCurrentForm(defs, true));
+      msgEl.innerHTML = "";
+    } else {
+      msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
+    }
+  } catch (err) {
+    msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
+  } finally {
+    submitBtn.disabled = false; submitBtn.textContent = "Saqlash";
   }
-  function formatStatusText(devs) {
-    return devs.filter(d => d.turi && d.dan && d.gacha).map(d => `${d.turi} ${d.dan}-${d.gacha}`).join("; ");
-  }
+}
 
-  // Asosiy ro'yxat: joriy smenaga biriktirilgan xodimlar (barchasi bo'yicha to'ldirish shart)
-  const primary = allXodimlar.filter(x => String(x.smena) === String(shiftState.smena));
-  // Qo'shimcha: avval saqlangan, lekin boshqa smenaga tegishli xodimlar (masalan, o'tgan safar qo'shilgan)
-  const primaryTabNos = new Set(primary.map(x => String(x.tabNo)));
-  const extraFromExisting = Object.keys(existing)
-    .filter(tabNo => !primaryTabNos.has(tabNo))
-    .map(tabNo => allXodimlar.find(x => String(x.tabNo) === tabNo))
-    .filter(Boolean);
+function askDuplicateConfirm(message, onConfirm) {
+  if (tg && tg.showConfirm) tg.showConfirm(message, (c) => { if (c) onConfirm(); });
+  else if (window.confirm(message)) onConfirm();
+}
 
-  let renderList = primary.concat(extraFromExisting); // seans davomida "+ qo'shish" bilan kengayadi
-  const usedTabNos = new Set(renderList.map(x => String(x.tabNo)));
-  let rowCounter = 0;
-
-  app.innerHTML = `
-    <div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} biriktirilgan: ${primary.length} kishi</div>
-    <div class="field">
-      <input type="text" id="tabelSearch" placeholder="Ro'yxatdan ism bo'yicha qidirish...">
-    </div>
-    <div id="tabelList"></div>
-    <div class="section-title">Boshqa smenadan kelgan xodim</div>
-    <div class="field">
-      <input type="text" id="addSearch" placeholder="Ism yoki Таб.номер bo'yicha qidirib qo'shish...">
-      <div id="addResults" style="margin-top:6px;"></div>
-    </div>
-  `;
-  const listEl = document.getElementById("tabelList");
-
-  function renderDeviations(idx, devs) {
-    const container = document.getElementById("t_devs_" + idx);
-    container.innerHTML = "";
-    devs.forEach((d, di) => {
-      const row = document.createElement("div");
-      row.style.cssText = "display:flex; gap:6px; align-items:center; margin-bottom:6px;";
-      const typeOpts = deviationTypes.map(t => `<option value="${t}" ${t===d.turi?"selected":""}>${t}</option>`).join("");
-      row.innerHTML = `
-        <select style="flex:1.4;" data-role="turi">${typeOpts}</select>
-        <input type="time" style="flex:1;" data-role="dan" value="${d.dan||""}">
-        <input type="time" style="flex:1;" data-role="gacha" value="${d.gacha||""}">
-        <button type="button" style="background:none;border:none;color:var(--accent-danger);font-size:16px;cursor:pointer;padding:0 4px;">✕</button>
-      `;
-      row.querySelector("select").addEventListener("change", e => { d.turi = e.target.value; });
-      row.querySelectorAll("input").forEach(inp => {
-        inp.addEventListener("change", e => { d[e.target.dataset.role] = e.target.value; });
-      });
-      row.querySelector("button").onclick = () => {
-        devs.splice(di, 1);
-        renderDeviations(idx, devs);
-      };
-      container.appendChild(row);
-    });
-  }
-
-  function addEmployeeRow(x) {
-    const idx = rowCounter++;
-    const ex = existing[String(x.tabNo)];
-    const rMes2 = ex ? ex.fields.rMes2 : x.rMes;
-    const prim = ex ? ex.fields.primechanie : "";
-    const devs = ex ? parseStatusText(ex.fields.statusText) : [];
-
-    const rMes2Opts = ishOptions.map(o => `<option value="${o.kod}" ${String(o.kod)===String(rMes2)?"selected":""}>${o.kod}</option>`).join("");
-    const smenaBelgisi = String(x.smena) !== String(shiftState.smena) ? ` · <span style="color:var(--tg-link);">boshqa smena: ${x.smena}</span>` : "";
-
-    const div = document.createElement("div");
-    div.className = "card";
-    div.dataset.tabno = String(x.tabNo);
-    div.style.cssText = "flex-direction:column; align-items:stretch; cursor:default;";
-    div.dataset.name = String(x.fio).toLowerCase();
-    div.innerHTML = `
-      <div style="font-weight:600; font-size:14px; margin-bottom:2px;">${x.fio}</div>
-      <div style="font-size:12px; color:var(--tg-hint); margin-bottom:8px;">Таб. № ${x.tabNo} · ${x.profession} · Р.Мес: ${x.rMes || "—"}${smenaBelgisi}</div>
-      <div class="field" style="margin-bottom:8px;">
-        <label>Р.Мес2 (fakt)</label>
-        <select id="t_rmes2_${idx}"><option value="">—</option>${rMes2Opts}</select>
-      </div>
-      <div class="field" style="margin-bottom:6px;">
-        <label>Og'ishlar (kech kelgan / erta ketgan / tashqariga chiqdi) — kerak bo'lsa qo'shing</label>
-        <div id="t_devs_${idx}"></div>
-        <button type="button" id="t_adddev_${idx}" style="background:none;border:1px dashed var(--tg-hint);border-radius:8px;padding:8px;width:100%;color:var(--tg-link);font-size:13px;cursor:pointer;">+ Og'ish qo'shish</button>
-      </div>
-      <div class="field" style="margin-bottom:0;">
-        <label>Примечание</label>
-        <input type="text" id="t_prim_${idx}" value="${prim}">
-      </div>
-    `;
-    listEl.appendChild(div);
-    renderDeviations(idx, devs);
-    document.getElementById("t_adddev_" + idx).onclick = () => {
-      devs.push({ turi: deviationTypes[0], dan: "", gacha: "" });
-      renderDeviations(idx, devs);
-    };
-    return { x, idx, devs };
-  }
-
-  let rows = renderList.map(x => addEmployeeRow(x));
-  updateSubmitLabel();
-
-  document.getElementById("tabelSearch").addEventListener("input", (e) => {
-    const q = e.target.value.toLowerCase();
-    listEl.querySelectorAll(".card").forEach(card => {
-      card.style.display = card.dataset.name.includes(q) ? "" : "none";
-    });
-  });
-
-  document.getElementById("addSearch").addEventListener("input", (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    const resultsEl = document.getElementById("addResults");
-    resultsEl.innerHTML = "";
-    if (!q) return;
-    const matches = allXodimlar
-      .filter(x => !usedTabNos.has(String(x.tabNo)))
-      .filter(x => String(x.fio).toLowerCase().includes(q) || String(x.tabNo).includes(q))
-      .slice(0, 8);
-    matches.forEach(x => {
-      const item = document.createElement("div");
-      item.className = "card";
-      item.style.padding = "10px 14px";
-      item.innerHTML = `<span class="title" style="font-size:14px;">${x.fio}</span><span class="chevron">Таб.№${x.tabNo} · Смена ${x.smena || "—"} · +</span>`;
-      item.onclick = () => {
-        usedTabNos.add(String(x.tabNo));
-        rows.push(addEmployeeRow(x));
-        updateSubmitLabel();
-        document.getElementById("addSearch").value = "";
-        resultsEl.innerHTML = "";
-      };
-      resultsEl.appendChild(item);
-    });
-  });
-
-  function updateSubmitLabel() {
-    submitBtn.textContent = "Saqlash (" + rows.length + " ta xodim)";
-  }
-
+function renderEditForm(jarayon, yozuvId, existingFields, onBack) {
+  currentJarayon = jarayon;
+  headerTitle.textContent = "Tahrirlash: " + jarayon;
+  backBtn.classList.remove("hidden"); footerBar.classList.remove("hidden");
+  backBtn.onclick = onBack;
+  const defs = bootstrap.formConfig[jarayon] || [];
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(existingFields.sana)} · Смена ${existingFields.smena}</div><div id="formMsg"></div>`;
+  defs.forEach(f => { html += renderField(f, existingFields[f.key]); });
+  app.innerHTML = html;
+  submitBtn.textContent = "Saqlash";
   submitBtn.onclick = async () => {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Saqlanmoqda...";
-    const entries = rows.map(({ x, idx, devs }) => ({
-      tabNo: x.tabNo, fio: x.fio, rMes: x.rMes,
-      rMes2: document.getElementById("t_rmes2_" + idx).value,
-      statusText: formatStatusText(devs),
-      primechanie: document.getElementById("t_prim_" + idx).value
-    }));
+    const msgEl = document.getElementById("formMsg");
+    msgEl.innerHTML = "";
+    const fields = { sana: existingFields.sana, smena: existingFields.smena };
+    defs.forEach(f => { fields[f.key] = document.getElementById("f_" + f.key).value; });
+    submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
     try {
-      const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries });
-      if (res2.ok) {
+      const res = await apiPost({ action: "editEntry", telegramId, jarayon, yozuvId, fields });
+      if (res.ok) {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-        shiftEntries = null; // Табель o'zgargani uchun keyingi menyu ochilishida qayta yuklaymiz
-        alert(res2.message);
-        renderMenu();
+        if (shiftEntries) { const idx = shiftEntries.findIndex(e => e.yozuvId === yozuvId); if (idx !== -1) shiftEntries[idx].fields = fields; }
+        if (bootstrap.reopenedEdits) bootstrap.reopenedEdits = bootstrap.reopenedEdits.filter(e => e.yozuvId !== yozuvId);
+        alert("Yozuv saqlandi.");
+        onBack();
       } else {
-        alert(res2.error || "Xatolik");
+        msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
       }
     } catch (err) {
-      alert("Tarmoq xatosi: " + err);
+      msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
     } finally {
-      submitBtn.disabled = false;
-      updateSubmitLabel();
+      submitBtn.disabled = false; submitBtn.textContent = "Saqlash";
     }
   };
 }
 
+// ============================================================
+// SMENANI YAKUNLASH (review)
+// ============================================================
+
+function renderJarayonChooser(jarayon, toxJarayon) {
+  headerTitle.textContent = jarayon;
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
+  app.innerHTML = `
+    <div class="card" id="chooseMahsulot"><span class="title">📦 Mahsulot / partiya kiritish</span><span class="chevron">${countFor(jarayon)} ta ›</span></div>
+    <div class="card" id="chooseTox"><span class="title">⏸ Тўхталиш qayd etish</span><span class="chevron">${countFor(toxJarayon)} ta ›</span></div>
+  `;
+  document.getElementById("chooseMahsulot").onclick = () => renderForm(jarayon);
+  document.getElementById("chooseTox").onclick = () => renderForm(toxJarayon);
+}
+
+async function renderMyShifts() {
+  headerTitle.textContent = "Mening smenalarim";
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+  const res = await apiGet({ action: "myShifts", telegramId });
+  if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
+  if (res.shifts.length === 0) { app.innerHTML = `<div class="center-msg">Hali hech qanday smena kiritilmagan.</div>`; return; }
+  let html = "";
+  res.shifts.forEach((s, idx) => {
+    const badge = s.holat === "Tasdiqlangan" ? "✅ Tasdiqlangan" : "🕓 Kiritilgan (tugallanmagan)";
+    html += `<div class="card" data-idx="${idx}"><span class="title">📅 ${formatSanaDisplay(s.sana)} · Смена ${s.smena}</span><span class="chevron">${badge} ›</span></div>`;
+  });
+  app.innerHTML = html;
+  document.querySelectorAll(".card[data-idx]").forEach(card => {
+    card.onclick = async () => {
+      const idx = Number(card.dataset.idx);
+      const s = res.shifts[idx];
+      if (s.holat === "Tasdiqlangan") {
+        renderShiftDetailReadonly(s.sana, s.smena);
+      } else {
+        shiftState = { sana: s.sana, smena: s.smena };
+        saveShift(shiftState);
+        shiftEntries = null;
+        renderMenu();
+      }
+    };
+  });
+}
+
+async function renderShiftDetailReadonly(sana, smena) {
+  headerTitle.textContent = "Smena tafsilotlari";
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMyShifts();
+  footerBar.classList.add("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+  const res = await apiGet({ action: "shiftEntries", telegramId, sana, smena, holat: "Tasdiqlangan" });
+  const entries = res.ok ? res.entries : [];
+  if (entries.length === 0) { app.innerHTML = `<div class="center-msg">Yozuv topilmadi.</div>`; return; }
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(sana)} · Смена ${smena} · Jami: ${entries.length} ta yozuv (faqat o'qish uchun)</div>`;
+  entries.forEach(entry => {
+    const defs = entry.jarayon === "Табель" ? null : (bootstrap.formConfig[entry.jarayon] || []);
+    let parts;
+    if (defs) {
+      parts = defs.filter(f => entry.fields[f.key] !== "" && entry.fields[f.key] !== undefined)
+        .map(f => `<b>${f.label}:</b> ${entry.fields[f.key]}`).join(" · ");
+    } else {
+      parts = `<b>${entry.fields.fio}</b> · Р.Мес2: ${entry.fields.rMes2 || "—"} · ${entry.fields.statusText || "to'liq ishladi"}`;
+    }
+    html += `<div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+      <div class="title" style="margin-bottom:6px;">${entry.jarayon}</div>
+      <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div></div>`;
+  });
+  app.innerHTML = html;
+}
+
+async function cancelCurrentShift() {
+  if (!confirm("DIQQAT: bu joriy smenada kiritilgan BARCHA (hali tasdiqlanmagan) yozuvlarni butunlay o'chiradi. Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?")) return;
+  const res = await apiPost({ action: "cancelShift", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+  if (res.ok) {
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
+    alert(res.message);
+    clearShift(); shiftState = null; shiftEntries = null;
+    renderShiftStart();
+  } else {
+    alert(res.error || "Xatolik");
+  }
+}
+
 function renderReview() {
   headerTitle.textContent = "Ko'rib chiqish va tasdiqlash";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderMenu();
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
   footerBar.classList.remove("hidden");
 
   if (shiftEntries.length === 0) {
@@ -637,27 +436,19 @@ function renderReview() {
     return;
   }
 
-  let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} · Jami: ${shiftEntries.length} ta yozuv</div>`;
-
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} · Jami: ${shiftEntries.length} ta yozuv
+    <a href="#" id="cancelShiftLink" style="margin-left:8px; color:var(--accent-danger);">(smenani bekor qilish)</a></div>`;
   const tabelEntries = shiftEntries.filter(e => e.jarayon === "Табель");
   const otherEntries = shiftEntries.filter(e => e.jarayon !== "Табель");
 
   if (tabelEntries.length) {
-    html += `
-      <div class="card" style="cursor:pointer;" id="tabelReviewCard">
-        <span class="title">📋 Табель</span>
-        <span class="chevron">${tabelEntries.length} ta xodim · tahrirlash ›</span>
-      </div>
-    `;
+    html += `<div class="card" style="cursor:pointer;" id="tabelReviewCard"><span class="title">📋 Табель</span><span class="chevron">${tabelEntries.length} ta xodim · tahrirlash ›</span></div>`;
   }
-
   otherEntries.forEach((entry) => {
     const idx = shiftEntries.indexOf(entry);
-    const defs = FORM_DEFS[entry.jarayon];
-    const parts = defs
-      .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
-      .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
-      .join(" · ");
+    const defs = bootstrap.formConfig[entry.jarayon] || [];
+    const parts = defs.filter(f => entry.fields[f.key] !== "" && entry.fields[f.key] !== undefined)
+      .map(f => `<b>${f.label}:</b> ${entry.fields[f.key]}`).join(" · ");
     html += `
       <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -668,35 +459,22 @@ function renderReview() {
           </span>
         </div>
         <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div>
-      </div>
-    `;
+      </div>`;
   });
   app.innerHTML = html;
-
-  if (tabelEntries.length) {
-    document.getElementById("tabelReviewCard").onclick = () => renderTabel();
-  }
+  if (tabelEntries.length) document.getElementById("tabelReviewCard").onclick = () => renderTabel();
+  document.getElementById("cancelShiftLink").onclick = (e) => { e.preventDefault(); cancelCurrentShift(); };
 
   document.querySelectorAll(".editEntryBtn").forEach(btn => {
-    btn.onclick = () => {
-      const idx = Number(btn.dataset.idx);
-      const entry = shiftEntries[idx];
-      renderEditForm(entry.jarayon, entry.yozuvId, entry.fields, () => renderReview());
-    };
+    btn.onclick = () => { const idx = Number(btn.dataset.idx); const entry = shiftEntries[idx]; renderEditForm(entry.jarayon, entry.yozuvId, entry.fields, () => renderReview()); };
   });
-
   document.querySelectorAll(".delEntryBtn").forEach(btn => {
     btn.onclick = async () => {
-      const idx = Number(btn.dataset.idx);
-      const entry = shiftEntries[idx];
+      const idx = Number(btn.dataset.idx); const entry = shiftEntries[idx];
       if (!confirm(`${entry.jarayon} yozuvini o'chirishni tasdiqlaysizmi?`)) return;
       const res = await apiPost({ action: "deleteEntry", telegramId, jarayon: entry.jarayon, yozuvId: entry.yozuvId });
-      if (res.ok) {
-        shiftEntries = shiftEntries.filter(e => e.yozuvId !== entry.yozuvId); // serverga qayta murojaat qilmay, mahalliy yangilaymiz
-        renderReview();
-      } else {
-        alert(res.error || "Xatolik");
-      }
+      if (res.ok) { shiftEntries = shiftEntries.filter(e => e.yozuvId !== entry.yozuvId); renderReview(); }
+      else alert(res.error || "Xatolik");
     };
   });
 
@@ -709,170 +487,30 @@ function renderReview() {
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       alert(res.count + " ta yozuv tasdiqlandi. Smena yakunlandi.");
-      clearShift();
-      shiftState = null;
-      shiftEntries = null;
-      renderShiftStart();
-    } else {
-      alert(res.error || "Xatolik");
-    }
+      clearShift(); shiftState = null; shiftEntries = null; renderShiftStart();
+    } else alert(res.error || "Xatolik");
   };
 }
 
-function renderField(f, def) {
-  const id = "f_" + f.k;
-  const dv = def !== undefined && def !== null ? def : "";
-  if (f.type === "select") {
-    const opts = f.options.map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
-    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
-  }
-  if (f.type === "mahsulot") {
-    const opts = bootstrap.mahsulotlar.map(o => `<option value="${o}" ${String(o)===String(dv)?"selected":""}>${o}</option>`).join("");
-    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">— tanlang —</option>${opts}</select></div>`;
-  }
-  if (f.type === "tuxtalish") {
-    const opts = bootstrap.tuxtalishSabablari.map(o => `<option value="${o.nomi}" ${String(o.nomi)===String(dv)?"selected":""}>${o.nomi}</option>`).join("");
-    return `<div class="field"><label>${f.label}</label><select id="${id}"><option value="">—</option>${opts}</select></div>`;
-  }
-  if (f.type === "textarea") {
-    return `<div class="field"><label>${f.label}</label><textarea id="${id}">${dv}</textarea></div>`;
-  }
-  if (f.type === "time") {
-    return `<div class="field"><label>${f.label}</label><input type="time" id="${id}" value="${dv}"></div>`;
-  }
-  if (f.type === "number") {
-    return `<div class="field"><label>${f.label}</label><input type="number" inputmode="decimal" id="${id}" value="${dv}"></div>`;
-  }
-  return `<div class="field"><label>${f.label}</label><input type="text" id="${id}" value="${dv || f.def || ""}"></div>`;
-}
+// ============================================================
+// OCHILGAN TAHRIRLAR / TARIX / TAHRIRLASH SO'RASH
+// ============================================================
 
-async function submitCurrentForm(defs, confirmDuplicate) {
-  const msgEl = document.getElementById("formMsg");
-  msgEl.innerHTML = "";
-  const fields = { sana: shiftState.sana, smena: shiftState.smena };
-  for (const f of defs) {
-    const el = document.getElementById("f_" + f.k);
-    fields[f.k] = el.value;
-  }
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Saqlanmoqda...";
-  try {
-    const res = await apiPost({
-      action: "submit",
-      telegramId,
-      jarayon: currentJarayon,
-      fields,
-      confirmDuplicate: !!confirmDuplicate
-    });
-    if (res.ok) {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-      msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
-      shiftEntries = (shiftEntries || []).concat([{ jarayon: currentJarayon, yozuvId: res.rowId, fields: fields }]); // mahalliy hisoblagichni yangilaymiz — qayta so'rov shart emas
-      defs.forEach(f => {
-        const el = document.getElementById("f_" + f.k);
-        if (el) el.value = "";
-      });
-    } else if (res.duplicate) {
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
-      askDuplicateConfirm(res.error, () => submitCurrentForm(defs, true));
-      msgEl.innerHTML = "";
-    } else {
-      msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
-    }
-  } catch (err) {
-    msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Saqlash";
-  }
-}
-
-function askDuplicateConfirm(message, onConfirm) {
-  if (tg && tg.showConfirm) {
-    tg.showConfirm(message, (confirmed) => { if (confirmed) onConfirm(); });
-  } else {
-    if (window.confirm(message)) onConfirm();
-  }
-}
-
-/**
- * Mavjud yozuvni tahrirlash formasi. Ikki holatda ishlatiladi:
- *  - Hali tasdiqlanmagan yozuv (review ekranidan "Tahrirlash")
- *  - Admin tomonidan qayta ochilgan (tasdiqlangan bo'lgan) yozuv ("Ochilgan tahrirlar")
- * onBack — orqaga qaytilganda chaqiriladigan funksiya.
- */
-function renderEditForm(jarayon, yozuvId, existingFields, onBack) {
-  currentJarayon = jarayon;
-  headerTitle.textContent = "Tahrirlash: " + jarayon;
-  backBtn.classList.remove("hidden");
-  footerBar.classList.remove("hidden");
-  backBtn.onclick = onBack;
-  const defs = FORM_DEFS[jarayon];
-  let html = `<div class="op-info">📅 ${formatSanaDisplay(existingFields.sana)} · Смена ${existingFields.smena}</div><div id="formMsg"></div>`;
-  defs.forEach(f => { html += renderField(f, existingFields[f.k]); });
-  app.innerHTML = html;
-
-  submitBtn.textContent = "Saqlash";
-  submitBtn.onclick = async () => {
-    const msgEl = document.getElementById("formMsg");
-    msgEl.innerHTML = "";
-    const fields = { sana: existingFields.sana, smena: existingFields.smena };
-    defs.forEach(f => { fields[f.k] = document.getElementById("f_" + f.k).value; });
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Saqlanmoqda...";
-    try {
-      const res = await apiPost({ action: "editEntry", telegramId, jarayon, yozuvId, fields });
-      if (res.ok) {
-        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-        // Mahalliy ro'yxatlarni yangilaymiz
-        if (shiftEntries) {
-          const idx = shiftEntries.findIndex(e => e.yozuvId === yozuvId);
-          if (idx !== -1) shiftEntries[idx].fields = fields;
-        }
-        if (bootstrap.reopenedEdits) {
-          bootstrap.reopenedEdits = bootstrap.reopenedEdits.filter(e => e.yozuvId !== yozuvId);
-        }
-        alert("Yozuv saqlandi.");
-        onBack();
-      } else {
-        msgEl.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik yuz berdi"}</div>`;
-      }
-    } catch (err) {
-      msgEl.innerHTML = `<div class="msg msg-error">Tarmoq xatosi: ${err}</div>`;
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Saqlash";
-    }
-  };
-}
-
-/** Admin tomonidan qayta ochilgan (tahrirlash kutayotgan) yozuvlar ro'yxati */
 async function renderReopenedList() {
   headerTitle.textContent = "Ochilgan tahrirlar";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderMenu();
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
   footerBar.classList.add("hidden");
-
   const list = bootstrap.reopenedEdits || [];
-  if (list.length === 0) {
-    app.innerHTML = `<div class="center-msg">Hozircha ochilgan tahrirlar yo'q.</div>`;
-    return;
-  }
+  if (list.length === 0) { app.innerHTML = `<div class="center-msg">Hozircha ochilgan tahrirlar yo'q.</div>`; return; }
   let html = "";
   list.forEach((item, idx) => {
-    html += `
-      <div class="card" data-idx="${idx}">
-        <span class="title">${item.jarayon}</span>
-        <span class="chevron">›</span>
-      </div>
-      <div style="font-size:12px; color:var(--tg-hint); margin:-6px 0 10px 4px;">Sabab: ${item.sabab || "-"}</div>
-    `;
+    html += `<div class="card" data-idx="${idx}"><span class="title">${item.jarayon}</span><span class="chevron">›</span></div>
+      <div style="font-size:12px; color:var(--tg-hint); margin:-6px 0 10px 4px;">Sabab: ${item.sabab || "-"}</div>`;
   });
   app.innerHTML = html;
   document.querySelectorAll(".card[data-idx]").forEach(card => {
     card.onclick = async () => {
-      const idx = Number(card.dataset.idx);
-      const item = list[idx];
+      const idx = Number(card.dataset.idx); const item = list[idx];
       app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
       const res = await apiGet({ action: "entry", telegramId, jarayon: item.jarayon, yozuvId: item.yozuvId });
       if (!res.ok) { alert(res.error || "Yozuv topilmadi"); renderReopenedList(); return; }
@@ -881,23 +519,14 @@ async function renderReopenedList() {
   });
 }
 
-/** Operator o'z jarayonini tanlab, tasdiqlangan yozuvlarini ko'rish uchun */
 function renderHistoryPicker() {
   headerTitle.textContent = "Tarix";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderMenu();
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
   footerBar.classList.add("hidden");
-
-  const jarayonlar = bootstrap.operator.jarayonlar.length ? bootstrap.operator.jarayonlar : bootstrap.jarayonlar;
-  let html = `
-    <div class="field">
-      <label>Sana bo'yicha filtr (ixtiyoriy, dd.mm.yyyy)</label>
-      <input type="text" id="histSana" placeholder="masalan: 13.08.2026">
-    </div>
-    <div class="section-title">Jarayonni tanlang</div>
-    <div id="histList"></div>
-  `;
-  app.innerHTML = html;
+  const jarayonlar = bootstrap.jarayonlar || [];
+  app.innerHTML = `
+    <div class="field"><label>Sana bo'yicha filtr (ixtiyoriy, dd.mm.yyyy)</label><input type="text" id="histSana" placeholder="masalan: 13.08.2026"></div>
+    <div class="section-title">Jarayonni tanlang</div><div id="histList"></div>`;
   const list = document.getElementById("histList");
   jarayonlar.forEach(j => {
     const div = document.createElement("div");
@@ -910,72 +539,46 @@ function renderHistoryPicker() {
 
 async function renderHistoryList(jarayon, sana) {
   headerTitle.textContent = jarayon + " — tarix";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderHistoryPicker();
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderHistoryPicker();
   footerBar.classList.add("hidden");
   app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-
   const params = { action: "history", telegramId, jarayon };
   if (sana) params.sana = sana;
   const res = await apiGet(params);
   const entries = res.ok ? res.entries : [];
-  if (entries.length === 0) {
-    app.innerHTML = `<div class="center-msg">Tasdiqlangan yozuv topilmadi.</div>`;
-    return;
-  }
-  const defs = FORM_DEFS[jarayon];
+  if (entries.length === 0) { app.innerHTML = `<div class="center-msg">Tasdiqlangan yozuv topilmadi.</div>`; return; }
+  const defs = bootstrap.formConfig[jarayon] || [];
   let html = "";
   entries.forEach((entry, idx) => {
-    const parts = defs
-      .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
-      .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
-      .join(" · ");
-    html += `
-      <div class="card" style="flex-direction:column; align-items:stretch;" data-idx="${idx}">
-        <div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div>
-      </div>
-    `;
+    const parts = defs.filter(f => entry.fields[f.key] !== "" && entry.fields[f.key] !== undefined)
+      .map(f => `<b>${f.label}:</b> ${entry.fields[f.key]}`).join(" · ");
+    html += `<div class="card" style="flex-direction:column; align-items:stretch;" data-idx="${idx}"><div style="font-size:13px; color:var(--tg-hint); line-height:1.5;">${parts}</div></div>`;
   });
   app.innerHTML = html;
   document.querySelectorAll(".card[data-idx]").forEach(card => {
-    card.onclick = () => {
-      const idx = Number(card.dataset.idx);
-      renderRequestEditScreen(jarayon, entries[idx]);
-    };
+    card.onclick = () => { const idx = Number(card.dataset.idx); renderRequestEditScreen(jarayon, entries[idx]); };
   });
 }
 
 function renderRequestEditScreen(jarayon, entry) {
   headerTitle.textContent = "Tahrirlashni so'rash";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderHistoryList(jarayon, "");
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderHistoryList(jarayon, "");
   footerBar.classList.remove("hidden");
-
-  const defs = FORM_DEFS[jarayon];
-  const parts = defs
-    .filter(f => entry.fields[f.k] !== "" && entry.fields[f.k] !== undefined)
-    .map(f => `<b>${f.label}:</b> ${entry.fields[f.k]}`)
-    .join("<br>");
+  const defs = bootstrap.formConfig[jarayon] || [];
+  const parts = defs.filter(f => entry.fields[f.key] !== "" && entry.fields[f.key] !== undefined)
+    .map(f => `<b>${f.label}:</b> ${entry.fields[f.key]}`).join("<br>");
   app.innerHTML = `
-    <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
-      <div style="font-size:13px; line-height:1.7;">${parts}</div>
-    </div>
+    <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;"><div style="font-size:13px; line-height:1.7;">${parts}</div></div>
     <div id="formMsg"></div>
-    <div class="field">
-      <label>Nega o'zgartirish kerak? (sabab)</label>
-      <textarea id="editSabab" placeholder="masalan: Факт miqdorda xatolik bor edi"></textarea>
-    </div>
-  `;
+    <div class="field"><label>Nega o'zgartirish kerak? (sabab)</label><textarea id="editSabab" placeholder="masalan: Факт miqdorda xatolik bor edi"></textarea></div>`;
   submitBtn.textContent = "Adminga so'rov yuborish";
   submitBtn.onclick = async () => {
     const sabab = document.getElementById("editSabab").value.trim();
     const msgEl = document.getElementById("formMsg");
     if (!sabab) { msgEl.innerHTML = `<div class="msg msg-error">Sababni yozish shart.</div>`; return; }
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Yuborilmoqda...";
+    submitBtn.disabled = true; submitBtn.textContent = "Yuborilmoqda...";
     const res = await apiPost({ action: "requestEdit", telegramId, jarayon, yozuvId: entry.yozuvId, sabab });
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Adminga so'rov yuborish";
+    submitBtn.disabled = false; submitBtn.textContent = "Adminga so'rov yuborish";
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       alert("So'rov yuborildi. Admin tasdiqlagach, \"Ochilgan tahrirlar\" bo'limida tuzatishingiz mumkin bo'ladi.");
@@ -986,30 +589,24 @@ function renderRequestEditScreen(jarayon, entry) {
   };
 }
 
-/** Admin panel: ko'rib chiqilmagan tahrirlash so'rovlari, Tasdiqlash/Rad etish */
 function renderAdminPanel() {
   headerTitle.textContent = "Admin panel";
-  backBtn.classList.remove("hidden");
-  backBtn.onclick = () => renderMenu();
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
   footerBar.classList.add("hidden");
-
   const list = bootstrap.pendingRequests || [];
-  if (list.length === 0) {
-    app.innerHTML = `<div class="center-msg">Hozircha kutayotgan so'rovlar yo'q.</div>`;
-    return;
-  }
+  if (list.length === 0) { app.innerHTML = `<div class="center-msg">Hozircha kutayotgan so'rovlar yo'q.</div>`; return; }
   let html = "";
   list.forEach((r, idx) => {
     let eskiText = "";
     try {
       const eski = JSON.parse(r.eski);
-      const defs = FORM_DEFS[r.jarayon] || [];
-      eskiText = defs.filter(f => eski[f.k]).map(f => `${f.label}: ${eski[f.k]}`).join(" · ");
-    } catch (e) { /* ignore */ }
+      const defs = bootstrap.formConfig[r.jarayon] || [];
+      eskiText = defs.filter(f => eski[f.key]).map(f => `${f.label}: ${eski[f.key]}`).join(" · ");
+    } catch (e) {}
     html += `
       <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span class="title">${r.jarayon}</span>
+          <span class="title">${r.jarayon} <span style="font-size:11px;color:var(--tg-hint);">(${r.sex})</span></span>
           <span style="font-size:12px; color:var(--tg-hint);">${r.vaqt}</span>
         </div>
         <div style="font-size:13px; margin-bottom:4px;">👤 ${r.soraganFio}</div>
@@ -1019,27 +616,149 @@ function renderAdminPanel() {
           <button data-idx="${idx}" data-decision="approve" class="reviewBtn" style="flex:1; padding:10px; border:none; border-radius:8px; background:var(--accent-ok); color:#fff; font-weight:600;">Tasdiqlash</button>
           <button data-idx="${idx}" data-decision="reject" class="reviewBtn" style="flex:1; padding:10px; border:none; border-radius:8px; background:var(--accent-danger); color:#fff; font-weight:600;">Rad etish</button>
         </div>
-      </div>
-    `;
+      </div>`;
   });
   app.innerHTML = html;
   document.querySelectorAll(".reviewBtn").forEach(btn => {
     btn.onclick = async () => {
-      const idx = Number(btn.dataset.idx);
-      const decision = btn.dataset.decision;
-      const r = list[idx];
+      const idx = Number(btn.dataset.idx); const decision = btn.dataset.decision; const r = list[idx];
       if (!confirm((decision === "approve" ? "Tasdiqlaysizmi" : "Rad etasizmi") + "? (" + r.jarayon + ", " + r.soraganFio + ")")) return;
       btn.disabled = true;
       const res = await apiPost({ action: "reviewEditRequest", telegramId, reqId: r.reqId, decision });
-      if (res.ok) {
-        bootstrap.pendingRequests = bootstrap.pendingRequests.filter(x => x.reqId !== r.reqId);
-        renderAdminPanel();
-      } else {
-        alert(res.error || "Xatolik");
-        btn.disabled = false;
-      }
+      if (res.ok) { bootstrap.pendingRequests = bootstrap.pendingRequests.filter(x => x.reqId !== r.reqId); renderAdminPanel(); }
+      else { alert(res.error || "Xatolik"); btn.disabled = false; }
     };
   });
+}
+
+// ============================================================
+// ТАБЕЛЬ
+// ============================================================
+
+async function renderTabel() {
+  headerTitle.textContent = "Табель";
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
+  footerBar.classList.remove("hidden");
+  app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+  const res = await apiGet({ action: "tabelData", sana: shiftState.sana, smena: shiftState.smena, telegramId });
+  if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
+
+  const allXodimlar = res.xodimlar;
+  const existing = res.existing;
+  const deviationTypes = ["Кеч келган", "Эрта кетган", "Ташқарига чиқди"];
+  const ishOptions = bootstrap.ishOrinlari || [];
+
+  function parseStatusText(text) {
+    if (!text) return [];
+    return text.split(";").map(s => s.trim()).filter(Boolean).map(seg => {
+      const m = seg.match(/^(.+?)\s+(\d{2}:\d{2})-(\d{2}:\d{2})$/);
+      return m ? { turi: m[1], dan: m[2], gacha: m[3] } : null;
+    }).filter(Boolean);
+  }
+  function formatStatusText(devs) {
+    return devs.filter(d => d.turi && d.dan && d.gacha).map(d => `${d.turi} ${d.dan}-${d.gacha}`).join("; ");
+  }
+
+  const primary = allXodimlar.filter(x => String(x.smena) === String(shiftState.smena));
+  const primaryTabNos = new Set(primary.map(x => String(x.tabNo)));
+  const extraFromExisting = Object.keys(existing).filter(t => !primaryTabNos.has(t)).map(t => allXodimlar.find(x => String(x.tabNo) === t)).filter(Boolean);
+  let renderList = primary.concat(extraFromExisting);
+  const usedTabNos = new Set(renderList.map(x => String(x.tabNo)));
+  let rowCounter = 0;
+
+  app.innerHTML = `
+    <div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} biriktirilgan: ${primary.length} kishi</div>
+    <div class="field"><input type="text" id="tabelSearch" placeholder="Ro'yxatdan ism bo'yicha qidirish..."></div>
+    <div id="tabelList"></div>
+    <div class="section-title">Boshqa smenadan kelgan xodim</div>
+    <div class="field"><input type="text" id="addSearch" placeholder="Ism yoki Таб.номер bo'yicha qidirib qo'shish..."><div id="addResults" style="margin-top:6px;"></div></div>`;
+  const listEl = document.getElementById("tabelList");
+
+  function renderDeviations(idx, devs) {
+    const container = document.getElementById("t_devs_" + idx);
+    container.innerHTML = "";
+    devs.forEach((d, di) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex; gap:6px; align-items:center; margin-bottom:6px;";
+      const typeOpts = deviationTypes.map(t => `<option value="${t}" ${t===d.turi?"selected":""}>${t}</option>`).join("");
+      row.innerHTML = `<select style="flex:1.4;" data-role="turi">${typeOpts}</select>
+        <input type="time" style="flex:1;" data-role="dan" value="${d.dan||""}">
+        <input type="time" style="flex:1;" data-role="gacha" value="${d.gacha||""}">
+        <button type="button" style="background:none;border:none;color:var(--accent-danger);font-size:16px;cursor:pointer;padding:0 4px;">✕</button>`;
+      row.querySelector("select").addEventListener("change", e => { d.turi = e.target.value; });
+      row.querySelectorAll("input").forEach(inp => inp.addEventListener("change", e => { d[e.target.dataset.role] = e.target.value; }));
+      row.querySelector("button").onclick = () => { devs.splice(di, 1); renderDeviations(idx, devs); };
+      container.appendChild(row);
+    });
+  }
+
+  function addEmployeeRow(x) {
+    const idx = rowCounter++;
+    const ex = existing[String(x.tabNo)];
+    const rMes2 = ex ? ex.fields.rMes2 : x.rMes;
+    const prim = ex ? ex.fields.primechanie : "";
+    const devs = ex ? parseStatusText(ex.fields.statusText) : [];
+    const rMes2Opts = ishOptions.map(o => `<option value="${o.kod}" ${String(o.kod)===String(rMes2)?"selected":""}>${o.kod}</option>`).join("");
+    const smenaBelgisi = String(x.smena) !== String(shiftState.smena) ? ` · <span style="color:var(--tg-link);">boshqa smena: ${x.smena}</span>` : "";
+    const div = document.createElement("div");
+    div.className = "card"; div.dataset.tabno = String(x.tabNo);
+    div.style.cssText = "flex-direction:column; align-items:stretch; cursor:default;";
+    div.dataset.name = String(x.fio).toLowerCase();
+    div.innerHTML = `
+      <div style="font-weight:600; font-size:14px; margin-bottom:2px;">${x.fio}</div>
+      <div style="font-size:12px; color:var(--tg-hint); margin-bottom:8px;">Таб. № ${x.tabNo} · ${x.profession} · Р.Мес: ${x.rMes || "—"}${smenaBelgisi}</div>
+      <div class="field" style="margin-bottom:8px;"><label>Р.Мес2 (fakt)</label><select id="t_rmes2_${idx}"><option value="">—</option>${rMes2Opts}</select></div>
+      <div class="field" style="margin-bottom:6px;"><label>Og'ishlar</label><div id="t_devs_${idx}"></div>
+        <button type="button" id="t_adddev_${idx}" style="background:none;border:1px dashed var(--tg-hint);border-radius:8px;padding:8px;width:100%;color:var(--tg-link);font-size:13px;cursor:pointer;">+ Og'ish qo'shish</button></div>
+      <div class="field" style="margin-bottom:0;"><label>Примечание</label><input type="text" id="t_prim_${idx}" value="${prim}"></div>`;
+    listEl.appendChild(div);
+    renderDeviations(idx, devs);
+    document.getElementById("t_adddev_" + idx).onclick = () => { devs.push({ turi: deviationTypes[0], dan: "", gacha: "" }); renderDeviations(idx, devs); };
+    return { x, idx, devs };
+  }
+
+  let rows = renderList.map(x => addEmployeeRow(x));
+  updateSubmitLabel();
+
+  document.getElementById("tabelSearch").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    listEl.querySelectorAll(".card").forEach(card => { card.style.display = card.dataset.name.includes(q) ? "" : "none"; });
+  });
+  document.getElementById("addSearch").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const resultsEl = document.getElementById("addResults"); resultsEl.innerHTML = "";
+    if (!q) return;
+    const matches = allXodimlar.filter(x => !usedTabNos.has(String(x.tabNo)))
+      .filter(x => String(x.fio).toLowerCase().includes(q) || String(x.tabNo).includes(q)).slice(0, 8);
+    matches.forEach(x => {
+      const item = document.createElement("div"); item.className = "card"; item.style.padding = "10px 14px";
+      item.innerHTML = `<span class="title" style="font-size:14px;">${x.fio}</span><span class="chevron">Таб.№${x.tabNo} · Смена ${x.smena || "—"} · +</span>`;
+      item.onclick = () => { usedTabNos.add(String(x.tabNo)); rows.push(addEmployeeRow(x)); updateSubmitLabel(); document.getElementById("addSearch").value = ""; resultsEl.innerHTML = ""; };
+      resultsEl.appendChild(item);
+    });
+  });
+
+  function updateSubmitLabel() { submitBtn.textContent = "Saqlash (" + rows.length + " ta xodim)"; }
+
+  submitBtn.onclick = async () => {
+    submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
+    const entries = rows.map(({ x, idx, devs }) => ({
+      tabNo: x.tabNo, fio: x.fio, rMes: x.rMes,
+      rMes2: document.getElementById("t_rmes2_" + idx).value,
+      statusText: formatStatusText(devs),
+      primechanie: document.getElementById("t_prim_" + idx).value
+    }));
+    try {
+      const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries });
+      if (res2.ok) {
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        shiftEntries = null;
+        alert(res2.message);
+        renderMenu();
+      } else alert(res2.error || "Xatolik");
+    } catch (err) { alert("Tarmoq xatosi: " + err); }
+    finally { submitBtn.disabled = false; updateSubmitLabel(); }
+  };
 }
 
 init();
