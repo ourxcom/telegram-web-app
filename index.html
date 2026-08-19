@@ -113,7 +113,7 @@ async function init() {
   }
   shiftState = loadShift();
   const params = { action: "bootstrap", telegramId };
-  if (shiftState) { params.sana = shiftState.sana; params.smena = shiftState.smena; }
+  if (shiftState) { params.sana = shiftState.sana; params.smena = shiftState.smena; params.sex = shiftState.sex; }
   const data = await apiGet(params);
   if (!data.ok) { app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`; return; }
   bootstrap = data;
@@ -146,8 +146,15 @@ function renderShiftStart() {
   const oyOptions = oyNomlari.map((n,i)=>`<option value="${i+1}" ${(i+1)===t.mm?"selected":""}>${n}</option>`).join("");
   const yilOptions = [t.yyyy-1,t.yyyy,t.yyyy+1].map(y=>`<option value="${y}" ${y===t.yyyy?"selected":""}>${y}</option>`).join("");
 
+  const sexlar = bootstrap.operator.sexlar || [bootstrap.sex];
+  const showSexPicker = sexlar.length > 1;
+
   app.innerHTML = `
-    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession} · Sex: ${bootstrap.sex}</div>
+    <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+    ${showSexPicker ? `
+    <div class="field"><label>Qaysi sexda ishlaysiz?</label>
+      <select id="shiftSex">${sexlar.map(s => `<option value="${s}" ${s===bootstrap.sex?"selected":""}>${s}</option>`).join("")}</select>
+    </div>` : `<div class="op-info" style="margin-top:-10px;">Sex: ${bootstrap.sex}</div>`}
     <div class="field"><label>Sana</label>
       <div class="row2" style="grid-template-columns:1fr 1.4fr 1fr;">
         <select id="shiftKun">${kunOptions}</select><select id="shiftOy">${oyOptions}</select><select id="shiftYil">${yilOptions}</select>
@@ -155,17 +162,55 @@ function renderShiftStart() {
     </div>
     <div class="field"><label>Смена</label>
       <select id="shiftSmena"><option value="">— tanlang —</option><option value="А">А</option><option value="Б">Б</option><option value="С">С</option><option value="Д">Д</option></select>
+      <div id="smenaInfo" style="font-size:12px; color:var(--tg-hint); margin-top:4px;"></div>
     </div>
     <button class="btn-primary" id="startShiftBtn">Boshlash</button>`;
-  document.getElementById("startShiftBtn").onclick = () => {
+
+  function currentSex() { return showSexPicker ? document.getElementById("shiftSex").value : bootstrap.sex; }
+  function currentSanaStr() {
     const kun = document.getElementById("shiftKun").value.padStart(2,"0");
     const oy = document.getElementById("shiftOy").value.padStart(2,"0");
     const yil = document.getElementById("shiftYil").value;
+    return `${kun}.${oy}.${yil}`;
+  }
+
+  async function refreshSmenaVariantlari() {
+    const sex = currentSex();
+    const sana = currentSanaStr();
+    const smenaSelect = document.getElementById("shiftSmena");
+    const infoEl = document.getElementById("smenaInfo");
+    const prevVal = smenaSelect.value;
+    const res = await apiGet({ action: "smenaVariantlari", telegramId, sex, sana });
+    const variantlar = res.ok ? res.variantlar : [];
+    if (variantlar.length) {
+      smenaSelect.innerHTML = `<option value="">— tanlang —</option>` +
+        variantlar.map(v => `<option value="${v.smena}" ${v.smena===prevVal?"selected":""}>${v.smena} (${v.boshlanish}–${v.tugash})</option>`).join("");
+      infoEl.textContent = "Bu sana uchun ish jadvali belgilangan.";
+    } else {
+      smenaSelect.innerHTML = `<option value="">— tanlang —</option><option value="А">А</option><option value="Б">Б</option><option value="С">С</option><option value="Д">Д</option>`;
+      smenaSelect.value = prevVal;
+      infoEl.textContent = "";
+    }
+  }
+
+  document.getElementById("shiftKun").addEventListener("change", refreshSmenaVariantlari);
+  document.getElementById("shiftOy").addEventListener("change", refreshSmenaVariantlari);
+  document.getElementById("shiftYil").addEventListener("change", refreshSmenaVariantlari);
+  if (showSexPicker) document.getElementById("shiftSex").addEventListener("change", refreshSmenaVariantlari);
+  refreshSmenaVariantlari();
+
+  document.getElementById("startShiftBtn").onclick = async () => {
+    const sex = currentSex();
+    const sana = currentSanaStr();
     const smena = document.getElementById("shiftSmena").value;
     if (!smena) { alert("Смена tanlanishi shart."); return; }
-    shiftState = { sana: `${kun}.${oy}.${yil}`, smena };
+    // Sex boshqa bo'lishi mumkin bo'lgani uchun bootstrap'ni shu sex uchun qayta yuklaymiz
+    const data = await apiGet({ action: "bootstrap", telegramId, sana, smena, sex });
+    if (!data.ok) { alert(data.error || "Xatolik"); return; }
+    bootstrap = data;
+    shiftState = { sana, smena, sex };
     saveShift(shiftState);
-    shiftEntries = [];
+    shiftEntries = data.entries || [];
     renderMenu();
   };
 }
@@ -175,7 +220,7 @@ function renderShiftStart() {
 // ============================================================
 
 async function refreshShiftEntries() {
-  const res = await apiGet({ action: "shiftEntries", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+  const res = await apiGet({ action: "shiftEntries", telegramId, sana: shiftState.sana, smena: shiftState.smena, sex: shiftState.sex });
   shiftEntries = res.ok ? res.entries : [];
 }
 function countFor(jarayon) { return (shiftEntries || []).filter(e => e.jarayon === jarayon).length; }
@@ -281,7 +326,7 @@ async function submitCurrentForm(defs, confirmDuplicate) {
   defs.forEach(f => { fields[f.key] = document.getElementById("f_" + f.key).value; });
   submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
   try {
-    const res = await apiPost({ action: "submit", telegramId, jarayon: currentJarayon, fields, confirmDuplicate: !!confirmDuplicate });
+    const res = await apiPost({ action: "submit", telegramId, jarayon: currentJarayon, fields, confirmDuplicate: !!confirmDuplicate, sex: shiftState.sex });
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       msgEl.innerHTML = `<div class="msg msg-ok">Saqlandi ✓ Yana yozuv kiritishingiz mumkin.</div>`;
@@ -306,12 +351,11 @@ function askDuplicateConfirm(message, onConfirm) {
   else if (window.confirm(message)) onConfirm();
 }
 
-function renderEditForm(jarayon, yozuvId, existingFields, onBack) {
+function renderEditForm(jarayon, yozuvId, existingFields, defs, sex, onBack) {
   currentJarayon = jarayon;
   headerTitle.textContent = "Tahrirlash: " + jarayon;
   backBtn.classList.remove("hidden"); footerBar.classList.remove("hidden");
   backBtn.onclick = onBack;
-  const defs = bootstrap.formConfig[jarayon] || [];
   let html = `<div class="op-info">📅 ${formatSanaDisplay(existingFields.sana)} · Смена ${existingFields.smena}</div><div id="formMsg"></div>`;
   defs.forEach(f => { html += renderField(f, existingFields[f.key]); });
   app.innerHTML = html;
@@ -323,7 +367,7 @@ function renderEditForm(jarayon, yozuvId, existingFields, onBack) {
     defs.forEach(f => { fields[f.key] = document.getElementById("f_" + f.key).value; });
     submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
     try {
-      const res = await apiPost({ action: "editEntry", telegramId, jarayon, yozuvId, fields });
+      const res = await apiPost({ action: "editEntry", telegramId, jarayon, yozuvId, fields, sex });
       if (res.ok) {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
         if (shiftEntries) { const idx = shiftEntries.findIndex(e => e.yozuvId === yozuvId); if (idx !== -1) shiftEntries[idx].fields = fields; }
@@ -368,7 +412,7 @@ async function renderMyShifts() {
   let html = "";
   res.shifts.forEach((s, idx) => {
     const badge = s.holat === "Tasdiqlangan" ? "✅ Tasdiqlangan" : "🕓 Kiritilgan (tugallanmagan)";
-    html += `<div class="card" data-idx="${idx}"><span class="title">📅 ${formatSanaDisplay(s.sana)} · Смена ${s.smena}</span><span class="chevron">${badge} ›</span></div>`;
+    html += `<div class="card" data-idx="${idx}"><span class="title">📅 ${formatSanaDisplay(s.sana)} · Смена ${s.smena} <span style="font-size:11px;color:var(--tg-hint);">(${s.sex})</span></span><span class="chevron">${badge} ›</span></div>`;
   });
   app.innerHTML = html;
   document.querySelectorAll(".card[data-idx]").forEach(card => {
@@ -376,28 +420,33 @@ async function renderMyShifts() {
       const idx = Number(card.dataset.idx);
       const s = res.shifts[idx];
       if (s.holat === "Tasdiqlangan") {
-        renderShiftDetailReadonly(s.sana, s.smena);
+        renderShiftDetailReadonly(s.sana, s.smena, s.sex);
       } else {
-        shiftState = { sana: s.sana, smena: s.smena };
+        app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
+        const data = await apiGet({ action: "bootstrap", telegramId, sana: s.sana, smena: s.smena, sex: s.sex });
+        if (!data.ok) { alert(data.error || "Xatolik"); renderMyShifts(); return; }
+        bootstrap = data;
+        shiftState = { sana: s.sana, smena: s.smena, sex: s.sex };
         saveShift(shiftState);
-        shiftEntries = null;
+        shiftEntries = data.entries || [];
         renderMenu();
       }
     };
   });
 }
 
-async function renderShiftDetailReadonly(sana, smena) {
+async function renderShiftDetailReadonly(sana, smena, sex) {
   headerTitle.textContent = "Smena tafsilotlari";
   backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMyShifts();
   footerBar.classList.add("hidden");
   app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-  const res = await apiGet({ action: "shiftEntries", telegramId, sana, smena, holat: "Tasdiqlangan" });
+  const res = await apiGet({ action: "shiftEntries", telegramId, sana, smena, holat: "Tasdiqlangan", sex });
   const entries = res.ok ? res.entries : [];
+  const formConfig = res.ok ? res.formConfig : {};
   if (entries.length === 0) { app.innerHTML = `<div class="center-msg">Yozuv topilmadi.</div>`; return; }
-  let html = `<div class="op-info">📅 ${formatSanaDisplay(sana)} · Смена ${smena} · Jami: ${entries.length} ta yozuv (faqat o'qish uchun)</div>`;
+  let html = `<div class="op-info">📅 ${formatSanaDisplay(sana)} · Смена ${smena} · ${sex} · Jami: ${entries.length} ta yozuv (faqat o'qish uchun)</div>`;
   entries.forEach(entry => {
-    const defs = entry.jarayon === "Табель" ? null : (bootstrap.formConfig[entry.jarayon] || []);
+    const defs = entry.jarayon === "Табель" ? null : (formConfig[entry.jarayon] || []);
     let parts;
     if (defs) {
       parts = defs.filter(f => entry.fields[f.key] !== "" && entry.fields[f.key] !== undefined)
@@ -414,7 +463,7 @@ async function renderShiftDetailReadonly(sana, smena) {
 
 async function cancelCurrentShift() {
   if (!confirm("DIQQAT: bu joriy smenada kiritilgan BARCHA (hali tasdiqlanmagan) yozuvlarni butunlay o'chiradi. Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?")) return;
-  const res = await apiPost({ action: "cancelShift", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+  const res = await apiPost({ action: "cancelShift", telegramId, sana: shiftState.sana, smena: shiftState.smena, sex: shiftState.sex });
   if (res.ok) {
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
     alert(res.message);
@@ -466,13 +515,13 @@ function renderReview() {
   document.getElementById("cancelShiftLink").onclick = (e) => { e.preventDefault(); cancelCurrentShift(); };
 
   document.querySelectorAll(".editEntryBtn").forEach(btn => {
-    btn.onclick = () => { const idx = Number(btn.dataset.idx); const entry = shiftEntries[idx]; renderEditForm(entry.jarayon, entry.yozuvId, entry.fields, () => renderReview()); };
+    btn.onclick = () => { const idx = Number(btn.dataset.idx); const entry = shiftEntries[idx]; renderEditForm(entry.jarayon, entry.yozuvId, entry.fields, bootstrap.formConfig[entry.jarayon] || [], shiftState.sex, () => renderReview()); };
   });
   document.querySelectorAll(".delEntryBtn").forEach(btn => {
     btn.onclick = async () => {
       const idx = Number(btn.dataset.idx); const entry = shiftEntries[idx];
       if (!confirm(`${entry.jarayon} yozuvini o'chirishni tasdiqlaysizmi?`)) return;
-      const res = await apiPost({ action: "deleteEntry", telegramId, jarayon: entry.jarayon, yozuvId: entry.yozuvId });
+      const res = await apiPost({ action: "deleteEntry", telegramId, jarayon: entry.jarayon, yozuvId: entry.yozuvId, sex: shiftState.sex });
       if (res.ok) { shiftEntries = shiftEntries.filter(e => e.yozuvId !== entry.yozuvId); renderReview(); }
       else alert(res.error || "Xatolik");
     };
@@ -482,7 +531,7 @@ function renderReview() {
   submitBtn.onclick = async () => {
     if (!confirm("Barcha yozuvlarni tasdiqlaysizmi? Tasdiqlangandan keyin ularni o'zgartirib/o'chirib bo'lmaydi.")) return;
     submitBtn.disabled = true;
-    const res = await apiPost({ action: "confirmShift", telegramId, sana: shiftState.sana, smena: shiftState.smena });
+    const res = await apiPost({ action: "confirmShift", telegramId, sana: shiftState.sana, smena: shiftState.smena, sex: shiftState.sex });
     submitBtn.disabled = false;
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
@@ -504,7 +553,7 @@ async function renderReopenedList() {
   if (list.length === 0) { app.innerHTML = `<div class="center-msg">Hozircha ochilgan tahrirlar yo'q.</div>`; return; }
   let html = "";
   list.forEach((item, idx) => {
-    html += `<div class="card" data-idx="${idx}"><span class="title">${item.jarayon}</span><span class="chevron">›</span></div>
+    html += `<div class="card" data-idx="${idx}"><span class="title">${item.jarayon} <span style="font-size:11px;color:var(--tg-hint);">(${item.sex})</span></span><span class="chevron">›</span></div>
       <div style="font-size:12px; color:var(--tg-hint); margin:-6px 0 10px 4px;">Sabab: ${item.sabab || "-"}</div>`;
   });
   app.innerHTML = html;
@@ -512,9 +561,9 @@ async function renderReopenedList() {
     card.onclick = async () => {
       const idx = Number(card.dataset.idx); const item = list[idx];
       app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-      const res = await apiGet({ action: "entry", telegramId, jarayon: item.jarayon, yozuvId: item.yozuvId });
+      const res = await apiGet({ action: "entry", telegramId, jarayon: item.jarayon, yozuvId: item.yozuvId, sex: item.sex });
       if (!res.ok) { alert(res.error || "Yozuv topilmadi"); renderReopenedList(); return; }
-      renderEditForm(item.jarayon, item.yozuvId, res.fields, () => renderReopenedList());
+      renderEditForm(item.jarayon, item.yozuvId, res.fields, res.defs, item.sex, () => renderReopenedList());
     };
   });
 }
@@ -542,7 +591,7 @@ async function renderHistoryList(jarayon, sana) {
   backBtn.classList.remove("hidden"); backBtn.onclick = () => renderHistoryPicker();
   footerBar.classList.add("hidden");
   app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-  const params = { action: "history", telegramId, jarayon };
+  const params = { action: "history", telegramId, jarayon, sex: bootstrap.sex };
   if (sana) params.sana = sana;
   const res = await apiGet(params);
   const entries = res.ok ? res.entries : [];
@@ -577,7 +626,7 @@ function renderRequestEditScreen(jarayon, entry) {
     const msgEl = document.getElementById("formMsg");
     if (!sabab) { msgEl.innerHTML = `<div class="msg msg-error">Sababni yozish shart.</div>`; return; }
     submitBtn.disabled = true; submitBtn.textContent = "Yuborilmoqda...";
-    const res = await apiPost({ action: "requestEdit", telegramId, jarayon, yozuvId: entry.yozuvId, sabab });
+    const res = await apiPost({ action: "requestEdit", telegramId, jarayon, yozuvId: entry.yozuvId, sabab, sex: bootstrap.sex });
     submitBtn.disabled = false; submitBtn.textContent = "Adminga so'rov yuborish";
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
@@ -640,7 +689,7 @@ async function renderTabel() {
   backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
   footerBar.classList.remove("hidden");
   app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`;
-  const res = await apiGet({ action: "tabelData", sana: shiftState.sana, smena: shiftState.smena, telegramId });
+  const res = await apiGet({ action: "tabelData", sana: shiftState.sana, smena: shiftState.smena, telegramId, sex: shiftState.sex });
   if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
 
   const allXodimlar = res.xodimlar;
@@ -749,7 +798,7 @@ async function renderTabel() {
       primechanie: document.getElementById("t_prim_" + idx).value
     }));
     try {
-      const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries });
+      const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries, sex: shiftState.sex });
       if (res2.ok) {
         if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
         shiftEntries = null;
