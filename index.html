@@ -204,6 +204,22 @@ function renderShiftStart() {
     const sana = currentSanaStr();
     const smena = document.getElementById("shiftSmena").value;
     if (!smena) { alert("Смена tanlanishi shart."); return; }
+
+    // Dublikat smena ogohlantirishi: shu sana+smena uchun boshqa operator tomonidan
+    // allaqachon ma'lumot kiritilgan yoki tasdiqlangan bo'lsa, ogohlantiramiz
+    const checkRes = await apiGet({ action: "checkShift", telegramId, sana, smena, sex });
+    if (checkRes.ok) {
+      const st = checkRes.status;
+      const myFio = bootstrap.operator.fio;
+      if (st.confirmedBy) {
+        const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ma'lumotlar allaqachon TASDIQLANGAN (${st.confirmedBy} tomonidan). Baribir shu sana/smena bilan davom etasizmi? (Bu yangi, alohida yozuvlar qo'shadi — mavjudlarini o'zgartirmaydi.)`);
+        if (!ok) return;
+      } else if (st.inProgressBy && st.inProgressBy !== myFio) {
+        const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ${st.inProgressBy} allaqachon ma'lumot kiritmoqda (hali tasdiqlanmagan). Baribir davom etasizmi?`);
+        if (!ok) return;
+      }
+    }
+
     // Sex boshqa bo'lishi mumkin bo'lgani uchun bootstrap'ni shu sex uchun qayta yuklaymiz
     const data = await apiGet({ action: "bootstrap", telegramId, sana, smena, sex });
     if (!data.ok) { alert(data.error || "Xatolik"); return; }
