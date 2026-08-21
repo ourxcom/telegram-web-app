@@ -118,8 +118,8 @@ async function init() {
   if (!data.ok) { app.innerHTML = `<div class="msg msg-error">${data.error || "Xatolik yuz berdi"}</div>`; return; }
   bootstrap = data;
   if (!bootstrap.operator) { renderRegister(); return; }
-  if (!shiftState) { renderShiftStart(); }
-  else { shiftEntries = data.entries || []; renderMenu(); }
+  shiftEntries = shiftState ? (data.entries || []) : null;
+  renderMenu();
 }
 
 function renderRegister() {
@@ -139,7 +139,8 @@ function renderRegister() {
 
 function renderShiftStart() {
   headerTitle.textContent = "Smenani boshlash";
-  backBtn.classList.add("hidden"); footerBar.classList.add("hidden");
+  backBtn.classList.remove("hidden"); backBtn.onclick = () => renderMenu();
+  footerBar.classList.add("hidden");
   const t = todayParts();
   const kunOptions = Array.from({length:31},(_,i)=>i+1).map(d=>`<option value="${d}" ${d===t.dd?"selected":""}>${d}</option>`).join("");
   const oyNomlari = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"];
@@ -156,8 +157,14 @@ function renderShiftStart() {
       <select id="shiftSex">${sexlar.map(s => `<option value="${s}" ${s===bootstrap.sex?"selected":""}>${s}</option>`).join("")}</select>
     </div>` : `<div class="op-info" style="margin-top:-10px;">Sex: ${bootstrap.sex}</div>`}
     <div class="field"><label>Sana</label>
-      <div class="row2" style="grid-template-columns:1fr 1.4fr 1fr;">
-        <select id="shiftKun">${kunOptions}</select><select id="shiftOy">${oyOptions}</select><select id="shiftYil">${yilOptions}</select>
+      <div class="row2" style="grid-template-columns:1fr 1.6fr 1fr;">
+        <select id="shiftKun">${kunOptions}</select>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button type="button" id="prevMonthBtn" style="padding:11px 10px; border:none; border-radius:10px; background:var(--tg-secbg); color:var(--tg-text); font-size:15px; cursor:pointer;">◀</button>
+          <select id="shiftOy" style="flex:1;">${oyOptions}</select>
+          <button type="button" id="nextMonthBtn" style="padding:11px 10px; border:none; border-radius:10px; background:var(--tg-secbg); color:var(--tg-text); font-size:15px; cursor:pointer;">▶</button>
+        </div>
+        <select id="shiftYil">${yilOptions}</select>
       </div>
     </div>
     <div class="field"><label>Смена</label>
@@ -167,6 +174,35 @@ function renderShiftStart() {
     <button class="btn-primary" id="startShiftBtn">Boshlash</button>`;
 
   function currentSex() { return showSexPicker ? document.getElementById("shiftSex").value : bootstrap.sex; }
+  function daysInMonth(yil, oy) { return new Date(yil, oy, 0).getDate(); } // oy — 1-12, Date'ning o'zi bu yerda faqat kun sonini hisoblash uchun, timezone'ga bog'liq emas
+  function rebuildKunOptions() {
+    const yil = Number(document.getElementById("shiftYil").value);
+    const oy = Number(document.getElementById("shiftOy").value);
+    const maxKun = daysInMonth(yil, oy);
+    const kunSel = document.getElementById("shiftKun");
+    const prevKun = Math.min(Number(kunSel.value) || 1, maxKun);
+    kunSel.innerHTML = Array.from({length: maxKun}, (_, i) => i + 1)
+      .map(d => `<option value="${d}" ${d === prevKun ? "selected" : ""}>${d}</option>`).join("");
+  }
+  function shiftMonth(delta) {
+    const oySel = document.getElementById("shiftOy");
+    const yilSel = document.getElementById("shiftYil");
+    let oy = Number(oySel.value) + delta;
+    let yil = Number(yilSel.value);
+    if (oy < 1) { oy = 12; yil -= 1; }
+    if (oy > 12) { oy = 1; yil += 1; }
+    if (![...yilSel.options].some(o => Number(o.value) === yil)) {
+      const opt = document.createElement("option"); opt.value = yil; opt.textContent = yil;
+      yilSel.appendChild(opt);
+    }
+    yilSel.value = yil;
+    oySel.value = oy;
+    rebuildKunOptions();
+    refreshSmenaVariantlari();
+  }
+  document.getElementById("prevMonthBtn").onclick = () => shiftMonth(-1);
+  document.getElementById("nextMonthBtn").onclick = () => shiftMonth(1);
+
   function currentSanaStr() {
     const kun = document.getElementById("shiftKun").value.padStart(2,"0");
     const oy = document.getElementById("shiftOy").value.padStart(2,"0");
@@ -174,13 +210,17 @@ function renderShiftStart() {
     return `${kun}.${oy}.${yil}`;
   }
 
+  let smenaReqToken = 0; // eskirgan (kech kelgan) javoblarni e'tiborsiz qoldirish uchun
   async function refreshSmenaVariantlari() {
+    const myToken = ++smenaReqToken;
     const sex = currentSex();
     const sana = currentSanaStr();
     const smenaSelect = document.getElementById("shiftSmena");
     const infoEl = document.getElementById("smenaInfo");
     const prevVal = smenaSelect.value;
+    infoEl.textContent = "Tekshirilmoqda...";
     const res = await apiGet({ action: "smenaVariantlari", telegramId, sex, sana });
+    if (myToken !== smenaReqToken) return; // shu orada yangiroq so'rov ketgan bo'lsa, bu natijani tashlab yuboramiz
     const variantlar = res.ok ? res.variantlar : [];
     if (variantlar.length) {
       smenaSelect.innerHTML = `<option value="">— tanlang —</option>` +
@@ -205,29 +245,41 @@ function renderShiftStart() {
     const smena = document.getElementById("shiftSmena").value;
     if (!smena) { alert("Смена tanlanishi shart."); return; }
 
-    // Dublikat smena ogohlantirishi: shu sana+smena uchun boshqa operator tomonidan
-    // allaqachon ma'lumot kiritilgan yoki tasdiqlangan bo'lsa, ogohlantiramiz
-    const checkRes = await apiGet({ action: "checkShift", telegramId, sana, smena, sex });
-    if (checkRes.ok) {
-      const st = checkRes.status;
-      const myFio = bootstrap.operator.fio;
-      if (st.confirmedBy) {
-        const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ma'lumotlar allaqachon TASDIQLANGAN (${st.confirmedBy} tomonidan). Baribir shu sana/smena bilan davom etasizmi? (Bu yangi, alohida yozuvlar qo'shadi — mavjudlarini o'zgartirmaydi.)`);
-        if (!ok) return;
-      } else if (st.inProgressBy && st.inProgressBy !== myFio) {
-        const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ${st.inProgressBy} allaqachon ma'lumot kiritmoqda (hali tasdiqlanmagan). Baribir davom etasizmi?`);
-        if (!ok) return;
-      }
-    }
+    const startBtn = document.getElementById("startShiftBtn");
+    startBtn.disabled = true;
+    startBtn.textContent = "Tekshirilmoqda...";
 
-    // Sex boshqa bo'lishi mumkin bo'lgani uchun bootstrap'ni shu sex uchun qayta yuklaymiz
-    const data = await apiGet({ action: "bootstrap", telegramId, sana, smena, sex });
-    if (!data.ok) { alert(data.error || "Xatolik"); return; }
-    bootstrap = data;
-    shiftState = { sana, smena, sex };
-    saveShift(shiftState);
-    shiftEntries = data.entries || [];
-    renderMenu();
+    try {
+      // Dublikat smena ogohlantirishi: shu sana+smena uchun boshqa operator tomonidan
+      // allaqachon ma'lumot kiritilgan yoki tasdiqlangan bo'lsa, ogohlantiramiz
+      const checkRes = await apiGet({ action: "checkShift", telegramId, sana, smena, sex });
+      if (checkRes.ok) {
+        const st = checkRes.status;
+        const myFio = bootstrap.operator.fio;
+        if (st.confirmedBy) {
+          const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ma'lumotlar allaqachon TASDIQLANGAN (${st.confirmedBy} tomonidan). Baribir shu sana/smena bilan davom etasizmi? (Bu yangi, alohida yozuvlar qo'shadi — mavjudlarini o'zgartirmaydi.)`);
+          if (!ok) return;
+        } else if (st.inProgressBy && st.inProgressBy !== myFio) {
+          const ok = confirm(`Diqqat: ${sana} sanasida, Смена ${smena} uchun ${st.inProgressBy} allaqachon ma'lumot kiritmoqda (hali tasdiqlanmagan). Baribir davom etasizmi?`);
+          if (!ok) return;
+        }
+      }
+
+      startBtn.textContent = "Yuklanmoqda...";
+      // Sex boshqa bo'lishi mumkin bo'lgani uchun bootstrap'ni shu sex uchun qayta yuklaymiz
+      const data = await apiGet({ action: "bootstrap", telegramId, sana, smena, sex });
+      if (!data.ok) { alert(data.error || "Xatolik"); return; }
+      bootstrap = data;
+      shiftState = { sana, smena, sex };
+      saveShift(shiftState);
+      shiftEntries = data.entries || [];
+      renderMenu();
+    } catch (err) {
+      alert("Tarmoq xatosi: " + err);
+    } finally {
+      startBtn.disabled = false;
+      startBtn.textContent = "Boshlash";
+    }
   };
 }
 
@@ -243,8 +295,33 @@ function countFor(jarayon) { return (shiftEntries || []).filter(e => e.jarayon =
 
 async function renderMenu() {
   currentJarayon = null;
-  headerTitle.textContent = "Jarayonni tanlang";
+  headerTitle.textContent = "Bosh menyu";
   backBtn.classList.add("hidden"); footerBar.classList.add("hidden");
+
+  // Smena hali tanlanmagan bo'lsa — faqat "Smenani boshlash" taklifi va doim ochiq
+  // bo'limlar (Tarix, Mening smenalarim, Admin) ko'rsatiladi. Jarayonlar/Табель/tasdiqlash
+  // faqat smena tanlangandan keyin paydo bo'ladi.
+  if (!shiftState) {
+    const reopenedCount0 = (bootstrap.reopenedEdits || []).length;
+    const pendingCount0 = (bootstrap.pendingRequests || []).length;
+    app.innerHTML = `
+      <div class="op-info">${bootstrap.operator.fio} · ${bootstrap.operator.profession}</div>
+      <div class="card" id="startShiftCard"><span class="title">📅 Smenani boshlash</span><span class="chevron">›</span></div>
+      ${reopenedCount0 ? `<div class="section-title">Tahrirlash</div><div class="card" id="reopenedCard"><span class="title">🔓 Ochilgan tahrirlar</span><span class="chevron">${reopenedCount0} ta ›</span></div>` : ""}
+      <div class="section-title">Tarix</div>
+      <div class="card" id="myShiftsCard"><span class="title">🗓 Mening smenalarim</span><span class="chevron">›</span></div>
+      <div class="card" id="historyCard"><span class="title">🕘 Tasdiqlangan yozuvlarni ko'rish / tahrirlash so'rash</span><span class="chevron">›</span></div>
+      ${bootstrap.isAdmin ? `<div class="section-title">Admin</div><div class="card" id="adminCard"><span class="title">🛡 Admin panel</span><span class="chevron">${pendingCount0} ta so'rov ›</span></div>` : ""}
+    `;
+    document.getElementById("startShiftCard").onclick = () => renderShiftStart();
+    if (reopenedCount0) document.getElementById("reopenedCard").onclick = () => renderReopenedList();
+    document.getElementById("myShiftsCard").onclick = () => renderMyShifts();
+    document.getElementById("historyCard").onclick = () => renderHistoryPicker();
+    if (bootstrap.isAdmin) document.getElementById("adminCard").onclick = () => renderAdminPanel();
+    return;
+  }
+
+  headerTitle.textContent = "Jarayonni tanlang";
   if (shiftEntries === null) { app.innerHTML = `<div class="center-msg">Yuklanmoqda...</div>`; await refreshShiftEntries(); }
 
   const allJarayonlar = bootstrap.jarayonlar || [];
@@ -291,7 +368,7 @@ async function renderMenu() {
   document.getElementById("changeShiftLink").onclick = (e) => {
     e.preventDefault();
     if (confirm("Smenani o'zgartirish hozirgacha kiritilgan yozuvlarga ta'sir qilmaydi. Davom etasizmi?")) {
-      clearShift(); shiftState = null; shiftEntries = null; renderShiftStart();
+      clearShift(); shiftState = null; shiftEntries = null; renderMenu();
     }
   };
 }
@@ -484,7 +561,7 @@ async function cancelCurrentShift() {
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
     alert(res.message);
     clearShift(); shiftState = null; shiftEntries = null;
-    renderShiftStart();
+    renderMenu();
   } else {
     alert(res.error || "Xatolik");
   }
@@ -552,7 +629,7 @@ function renderReview() {
     if (res.ok) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       alert(res.count + " ta yozuv tasdiqlandi. Smena yakunlandi.");
-      clearShift(); shiftState = null; shiftEntries = null; renderShiftStart();
+      clearShift(); shiftState = null; shiftEntries = null; renderMenu();
     } else alert(res.error || "Xatolik");
   };
 }
@@ -709,9 +786,12 @@ async function renderTabel() {
   if (!res.ok) { app.innerHTML = `<div class="msg msg-error">${res.error || "Xatolik"}</div>`; return; }
 
   const allXodimlar = res.xodimlar;
+  const boshqaSexXodimlar = res.xodimlarBoshqaSex || [];
+  const searchPool = allXodimlar.map(x => Object.assign({}, x, { sex: shiftState.sex })).concat(boshqaSexXodimlar);
   const existing = res.existing;
   const deviationTypes = ["Кеч келган", "Эрта кетган", "Ташқарига чиқди"];
   const ishOptions = bootstrap.ishOrinlari || [];
+  const jarayonRMesMap = bootstrap.jarayonRMesMap || {};
 
   function parseStatusText(text) {
     if (!text) return [];
@@ -726,16 +806,37 @@ async function renderTabel() {
 
   const primary = allXodimlar.filter(x => String(x.smena) === String(shiftState.smena));
   const primaryTabNos = new Set(primary.map(x => String(x.tabNo)));
-  const extraFromExisting = Object.keys(existing).filter(t => !primaryTabNos.has(t)).map(t => allXodimlar.find(x => String(x.tabNo) === t)).filter(Boolean);
+  const extraFromExisting = Object.keys(existing).filter(t => !primaryTabNos.has(t))
+    .map(t => searchPool.find(x => String(x.tabNo) === t)).filter(Boolean);
   let renderList = primary.concat(extraFromExisting);
   const usedTabNos = new Set(renderList.map(x => String(x.tabNo)));
   let rowCounter = 0;
 
+  const hasBulkOptions = Object.keys(jarayonRMesMap).length > 0;
+
   app.innerHTML = `
     <div class="op-info">📅 ${formatSanaDisplay(shiftState.sana)} · Смена ${shiftState.smena} biriktirilgan: ${primary.length} kishi</div>
-    <div class="field"><input type="text" id="tabelSearch" placeholder="Ro'yxatdan ism bo'yicha qidirish..."></div>
+    ${hasBulkOptions ? `
+    <div class="section-title">Ommaviy og'ish (bitta jarayonga barcha xodimlar uchun)</div>
+    <div class="card" style="flex-direction:column; align-items:stretch; cursor:default;">
+      <div class="field" style="margin-bottom:8px;"><label>Jarayon</label>
+        <select id="bulkJarayon"><option value="">— tanlang —</option>${Object.keys(jarayonRMesMap).map(j => `<option value="${j}">${j}</option>`).join("")}</select>
+      </div>
+      <div class="row2" style="margin-bottom:8px;">
+        <div class="field" style="margin-bottom:0;"><label>Turi</label>
+          <select id="bulkTuri">${deviationTypes.map(t => `<option value="${t}">${t}</option>`).join("")}</select>
+        </div>
+        <div></div>
+      </div>
+      <div class="row2" style="margin-bottom:8px;">
+        <div class="field" style="margin-bottom:0;"><label>...Дан</label><input type="time" id="bulkDan"></div>
+        <div class="field" style="margin-bottom:0;"><label>...Гача</label><input type="time" id="bulkGacha"></div>
+      </div>
+      <button type="button" id="bulkApplyBtn" style="padding:10px; border:none; border-radius:8px; background:var(--tg-btn); color:var(--tg-btn-text); font-weight:600; cursor:pointer;">Barchasiga qo'llash</button>
+    </div>` : ""}
+    <div class="field" style="margin-top:10px;"><input type="text" id="tabelSearch" placeholder="Ism yoki Таб.номер bo'yicha qidirish..."></div>
     <div id="tabelList"></div>
-    <div class="section-title">Boshqa smenadan kelgan xodim</div>
+    <div class="section-title">Boshqa smena/sexdan kelgan xodim</div>
     <div class="field"><input type="text" id="addSearch" placeholder="Ism yoki Таб.номер bo'yicha qidirib qo'shish..."><div id="addResults" style="margin-top:6px;"></div></div>`;
   const listEl = document.getElementById("tabelList");
 
@@ -763,15 +864,19 @@ async function renderTabel() {
     const rMes2 = ex ? ex.fields.rMes2 : x.rMes;
     const prim = ex ? ex.fields.primechanie : "";
     const devs = ex ? parseStatusText(ex.fields.statusText) : [];
+    const aslSex = x.sex || shiftState.sex;
     const rMes2Opts = ishOptions.map(o => `<option value="${o.kod}" ${String(o.kod)===String(rMes2)?"selected":""}>${o.kod}</option>`).join("");
-    const smenaBelgisi = String(x.smena) !== String(shiftState.smena) ? ` · <span style="color:var(--tg-link);">boshqa smena: ${x.smena}</span>` : "";
+    const belgilar = [];
+    if (String(x.smena) !== String(shiftState.smena)) belgilar.push(`boshqa smena: ${x.smena}`);
+    if (String(aslSex) !== String(shiftState.sex)) belgilar.push(`boshqa sex: ${aslSex}`);
+    const qoshimchaBelgi = belgilar.length ? ` · <span style="color:var(--tg-link);">${belgilar.join(", ")}</span>` : "";
     const div = document.createElement("div");
     div.className = "card"; div.dataset.tabno = String(x.tabNo);
     div.style.cssText = "flex-direction:column; align-items:stretch; cursor:default;";
     div.dataset.name = String(x.fio).toLowerCase();
     div.innerHTML = `
       <div style="font-weight:600; font-size:14px; margin-bottom:2px;">${x.fio}</div>
-      <div style="font-size:12px; color:var(--tg-hint); margin-bottom:8px;">Таб. № ${x.tabNo} · ${x.profession} · Р.Мес: ${x.rMes || "—"}${smenaBelgisi}</div>
+      <div style="font-size:12px; color:var(--tg-hint); margin-bottom:8px;">Таб. № ${x.tabNo} · ${x.profession} · Р.Мес: ${x.rMes || "—"}${qoshimchaBelgi}</div>
       <div class="field" style="margin-bottom:8px;"><label>Р.Мес2 (fakt)</label><select id="t_rmes2_${idx}"><option value="">—</option>${rMes2Opts}</select></div>
       <div class="field" style="margin-bottom:6px;"><label>Og'ishlar</label><div id="t_devs_${idx}"></div>
         <button type="button" id="t_adddev_${idx}" style="background:none;border:1px dashed var(--tg-hint);border-radius:8px;padding:8px;width:100%;color:var(--tg-link);font-size:13px;cursor:pointer;">+ Og'ish qo'shish</button></div>
@@ -779,39 +884,67 @@ async function renderTabel() {
     listEl.appendChild(div);
     renderDeviations(idx, devs);
     document.getElementById("t_adddev_" + idx).onclick = () => { devs.push({ turi: deviationTypes[0], dan: "", gacha: "" }); renderDeviations(idx, devs); };
-    return { x, idx, devs };
+    return { x, idx, devs, aslSex };
   }
 
   let rows = renderList.map(x => addEmployeeRow(x));
   updateSubmitLabel();
 
   document.getElementById("tabelSearch").addEventListener("input", (e) => {
-    const q = e.target.value.toLowerCase();
-    listEl.querySelectorAll(".card").forEach(card => { card.style.display = card.dataset.name.includes(q) ? "" : "none"; });
+    const q = e.target.value.trim().toLowerCase();
+    listEl.querySelectorAll(".card").forEach(card => {
+      const match = card.dataset.name.includes(q) || String(card.dataset.tabno).toLowerCase().includes(q);
+      card.style.display = match ? "" : "none";
+    });
   });
   document.getElementById("addSearch").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
     const resultsEl = document.getElementById("addResults"); resultsEl.innerHTML = "";
     if (!q) return;
-    const matches = allXodimlar.filter(x => !usedTabNos.has(String(x.tabNo)))
-      .filter(x => String(x.fio).toLowerCase().includes(q) || String(x.tabNo).includes(q)).slice(0, 8);
+    const matches = searchPool.filter(x => !usedTabNos.has(String(x.tabNo)))
+      .filter(x => String(x.fio).toLowerCase().includes(q) || String(x.tabNo).toLowerCase().includes(q)).slice(0, 8);
     matches.forEach(x => {
       const item = document.createElement("div"); item.className = "card"; item.style.padding = "10px 14px";
-      item.innerHTML = `<span class="title" style="font-size:14px;">${x.fio}</span><span class="chevron">Таб.№${x.tabNo} · Смена ${x.smena || "—"} · +</span>`;
+      const sexBelgi = String(x.sex) !== String(shiftState.sex) ? ` · <span style="color:var(--tg-link);">${x.sex}</span>` : "";
+      item.innerHTML = `<span class="title" style="font-size:14px;">${x.fio}</span><span class="chevron">Таб.№${x.tabNo} · Смена ${x.smena || "—"}${sexBelgi} · +</span>`;
       item.onclick = () => { usedTabNos.add(String(x.tabNo)); rows.push(addEmployeeRow(x)); updateSubmitLabel(); document.getElementById("addSearch").value = ""; resultsEl.innerHTML = ""; };
       resultsEl.appendChild(item);
     });
   });
 
+  if (hasBulkOptions) {
+    document.getElementById("bulkApplyBtn").onclick = () => {
+      const jarayon = document.getElementById("bulkJarayon").value;
+      const turi = document.getElementById("bulkTuri").value;
+      const dan = document.getElementById("bulkDan").value;
+      const gacha = document.getElementById("bulkGacha").value;
+      if (!jarayon) { alert("Jarayonni tanlang."); return; }
+      if (!dan || !gacha) { alert("...Дан va ...Гача to'ldirilishi shart."); return; }
+      const kodlar = (jarayonRMesMap[jarayon] || []).map(String);
+      if (kodlar.length === 0) { alert("Bu jarayon uchun Р.Мес bog'lanishi topilmadi (Jarayon_RMes jadvalini tekshiring)."); return; }
+      let count = 0;
+      rows.forEach(({ idx, devs }) => {
+        const rmes2Val = document.getElementById("t_rmes2_" + idx).value;
+        if (kodlar.indexOf(String(rmes2Val)) === -1) return;
+        devs.push({ turi, dan, gacha });
+        renderDeviations(idx, devs);
+        count++;
+      });
+      if (count === 0) alert("Hech qanday xodim topilmadi (ularning Р.Мес2 qiymati shu jarayonga mos emas — avval Р.Мес2'ni to'g'ri tanlang).");
+      else alert(count + " ta xodimga qo'llandi. \"Saqlash\" bosishni unutmang.");
+    };
+  }
+
   function updateSubmitLabel() { submitBtn.textContent = "Saqlash (" + rows.length + " ta xodim)"; }
 
   submitBtn.onclick = async () => {
     submitBtn.disabled = true; submitBtn.textContent = "Saqlanmoqda...";
-    const entries = rows.map(({ x, idx, devs }) => ({
+    const entries = rows.map(({ x, idx, devs, aslSex }) => ({
       tabNo: x.tabNo, fio: x.fio, rMes: x.rMes,
       rMes2: document.getElementById("t_rmes2_" + idx).value,
       statusText: formatStatusText(devs),
-      primechanie: document.getElementById("t_prim_" + idx).value
+      primechanie: document.getElementById("t_prim_" + idx).value,
+      aslSex: aslSex
     }));
     try {
       const res2 = await apiPost({ action: "submitTabel", telegramId, sana: shiftState.sana, smena: shiftState.smena, entries, sex: shiftState.sex });
